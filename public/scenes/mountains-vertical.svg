@@ -1,0 +1,58 @@
+<svg width="600" height="800" viewBox="0 0 600 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="vsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6efe2"/>
+      <stop offset="60%" stop-color="#ebe0c6"/>
+      <stop offset="100%" stop-color="#c5b287"/>
+    </linearGradient>
+    <linearGradient id="vink1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6a6a6a" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#6a6a6a" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="vink2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a3a" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#3a3a3a" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="vink3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1a" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#1a1a1a" stop-opacity="0.55"/>
+    </linearGradient>
+    <filter id="vsoft"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <filter id="vmist"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+
+  <rect width="600" height="800" fill="url(#vsky)"/>
+
+  <ellipse cx="150" cy="180" rx="220" ry="32" fill="#fff" opacity="0.55" filter="url(#vmist)"/>
+  <ellipse cx="450" cy="280" rx="240" ry="36" fill="#fff" opacity="0.45" filter="url(#vmist)"/>
+
+  <path d="M0,360 L80,300 L160,340 L240,260 L320,320 L400,250 L480,310 L560,270 L600,300 L600,800 L0,800 Z"
+        fill="url(#vink1)" filter="url(#vsoft)"/>
+
+  <path d="M0,480 L100,420 L180,460 L280,380 L360,440 L460,390 L540,440 L600,410 L600,800 L0,800 Z"
+        fill="url(#vink2)" filter="url(#vsoft)"/>
+
+  <path d="M0,620 L90,560 L170,600 L260,520 L350,580 L440,530 L530,580 L600,560 L600,800 L0,800 Z"
+        fill="url(#vink3)" filter="url(#vsoft)"/>
+
+  <rect x="0" y="700" width="600" height="100" fill="#c5b287" opacity="0.5"/>
+
+  <g opacity="0.7" filter="url(#vsoft)">
+    <path d="M180,720 Q210,716 240,720" stroke="#3a3a3a" stroke-width="1.2" fill="none"/>
+    <path d="M280,735 Q320,731 360,735" stroke="#3a3a3a" stroke-width="1.2" fill="none"/>
+    <path d="M410,725 Q450,721 490,725" stroke="#3a3a3a" stroke-width="1.2" fill="none"/>
+  </g>
+
+  <g transform="translate(310,690)" opacity="0.85">
+    <path d="M0,14 L5,4 L10,14 L13,8 L17,16 L0,16 Z" fill="#1a1a1a"/>
+    <line x1="17" y1="16" x2="36" y2="16" stroke="#1a1a1a" stroke-width="1.2"/>
+  </g>
+
+  <ellipse cx="100" cy="740" rx="80" ry="3" fill="#fff" opacity="0.5"/>
+  <ellipse cx="500" cy="750" rx="70" ry="3" fill="#fff" opacity="0.4"/>
+
+  <g transform="translate(490,140)" opacity="0.92">
+    <circle cx="0" cy="0" r="28" fill="#a13e2d"/>
+    <circle cx="0" cy="0" r="28" fill="none" stroke="#7a2d20" stroke-width="1" opacity="0.6"/>
+  </g>
+</svg>

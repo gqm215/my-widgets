@@ -1,0 +1,64 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6efe2"/>
+      <stop offset="55%" stop-color="#ebe0c6"/>
+      <stop offset="100%" stop-color="#dfd1b0"/>
+    </linearGradient>
+    <linearGradient id="inkDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a1a" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#1a1a1a" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="inkMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a3a" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#3a3a3a" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="inkLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6a6a6a" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#6a6a6a" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d9c9a3" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#c5b287" stop-opacity="0.8"/>
+    </linearGradient>
+    <filter id="softBlur"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <filter id="mistBlur"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#sky)"/>
+
+  <ellipse cx="200" cy="80" rx="280" ry="20" fill="#fff" opacity="0.55" filter="url(#mistBlur)"/>
+  <ellipse cx="900" cy="100" rx="320" ry="22" fill="#fff" opacity="0.4" filter="url(#mistBlur)"/>
+
+  <path d="M0,180 L60,140 L130,165 L210,120 L280,150 L340,110 L410,145 L470,100 L520,135 L580,90 L640,130 L700,95 L770,135 L830,105 L900,140 L970,115 L1040,150 L1100,125 L1200,160 L1200,320 L0,320 Z"
+        fill="url(#inkLight)" filter="url(#softBlur)"/>
+
+  <path d="M0,220 L80,180 L150,210 L240,160 L310,195 L390,150 L450,185 L520,140 L600,180 L670,145 L750,185 L830,155 L910,195 L990,165 L1070,200 L1150,170 L1200,195 L1200,320 L0,320 Z"
+        fill="url(#inkMid)" filter="url(#softBlur)"/>
+
+  <path d="M0,265 L100,235 L180,255 L260,220 L340,250 L430,215 L510,245 L590,210 L680,245 L760,215 L850,250 L940,220 L1020,250 L1100,225 L1200,255 L1200,320 L0,320 Z"
+        fill="url(#inkDark)" filter="url(#softBlur)"/>
+
+  <rect x="0" y="280" width="1200" height="40" fill="url(#water)"/>
+
+  <g opacity="0.6" filter="url(#softBlur)">
+    <path d="M520,278 Q540,276 560,278" stroke="#5a5a5a" stroke-width="1" fill="none"/>
+    <path d="M580,282 Q610,280 640,282" stroke="#5a5a5a" stroke-width="1" fill="none"/>
+    <path d="M660,278 Q690,276 720,278" stroke="#5a5a5a" stroke-width="1" fill="none"/>
+  </g>
+
+  <g transform="translate(560,262)" opacity="0.85">
+    <path d="M0,12 L4,4 L8,12 L10,8 L14,14 L0,14 Z" fill="#1a1a1a"/>
+    <line x1="14" y1="14" x2="28" y2="14" stroke="#1a1a1a" stroke-width="1"/>
+  </g>
+
+  <ellipse cx="150" cy="290" rx="60" ry="3" fill="#fff" opacity="0.5"/>
+  <ellipse cx="450" cy="295" rx="80" ry="3" fill="#fff" opacity="0.4"/>
+  <ellipse cx="800" cy="290" rx="70" ry="3" fill="#fff" opacity="0.5"/>
+  <ellipse cx="1050" cy="295" rx="60" ry="3" fill="#fff" opacity="0.4"/>
+
+  <g transform="translate(1040,60)" opacity="0.92">
+    <circle cx="0" cy="0" r="22" fill="#a13e2d"/>
+    <circle cx="0" cy="0" r="22" fill="none" stroke="#7a2d20" stroke-width="0.8" opacity="0.6"/>
+  </g>
+</svg>

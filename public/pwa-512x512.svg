@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ink512" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%" stop-color="#f6efe2"/>
+      <stop offset="70%" stop-color="#ebe0c6"/>
+      <stop offset="100%" stop-color="#d9c9a3"/>
+    </radialGradient>
+    <filter id="brush512" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#ink512)"/>
+  <g filter="url(#brush512)">
+    <path d="M144 400L192 128L256 293L320 128L368 400"
+          stroke="#0d0d0d" stroke-width="36"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M176 234C208 213 240 213 272 234"
+          stroke="#0d0d0d" stroke-width="15"
+          stroke-linecap="round" fill="none" opacity="0.55"/>
+    <path d="M186 288C218 267 250 267 282 288"
+          stroke="#0d0d0d" stroke-width="13"
+          stroke-linecap="round" fill="none" opacity="0.4"/>
+  </g>
+  <circle cx="400" cy="390" r="48" fill="#a13e2d"/>
+  <rect x="374" y="364" width="52" height="52" fill="#a13e2d" opacity="0.35"/>
+  <circle cx="400" cy="390" r="38" fill="none" stroke="#7a2d20" stroke-width="3"/>
+</svg>

@@ -1,0 +1,436 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  line-height: 1.65;
+  font-weight: 400;
+  color: #2d2d2d;
+  background-color: #faf8f5;
+  font-feature-settings: "kern", "liga", "calt", "ss01";
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* ===== 文本选区：朱砂半透 ===== */
+::selection {
+  background-color: rgba(201, 64, 67, 0.20);
+  color: inherit;
+}
+html.dark ::selection {
+  background-color: rgba(232, 90, 93, 0.30);
+}
+html.dark ::-moz-selection {
+  background-color: rgba(232, 90, 93, 0.30);
+}
+
+/* ===== 滚动条：极简水墨 ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 45, 45, 0.18) transparent;
+}
+html.dark * {
+  scrollbar-color: rgba(232, 232, 232, 0.16) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(45, 45, 45, 0.16);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 200ms ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(45, 45, 45, 0.34);
+  background-clip: content-box;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(232, 232, 232, 0.13);
+  background-clip: content-box;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(232, 232, 232, 0.26);
+  background-clip: content-box;
+}
+
+/* Markdown styles */
+.markdown-body h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
+  font-family: "Noto Serif SC", serif;
+}
+
+.markdown-body h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  margin-top: 1.25rem;
+  font-family: "Noto Serif SC", serif;
+}
+
+.markdown-body p {
+  margin-bottom: 1rem;
+}
+
+.markdown-body ul, .markdown-body ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-body code {
+  background-color: #f0ece4;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.markdown-body pre {
+  background-color: #2d2d2d;
+  color: #e8e8e8;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 暗色模式 Markdown 预览 */
+html.dark .markdown-body h1 { color: #e8e8e8; }
+html.dark .markdown-body h2 { color: #e8e8e8; }
+html.dark .markdown-body h3 { color: #e0e0e0; }
+html.dark .markdown-body p { color: #e8e8e8; }
+html.dark .markdown-body li { color: #e0e0e0; }
+html.dark .markdown-body code { background-color: #333; color: #ddd; }
+html.dark .markdown-body pre { background-color: #111; color: #ddd; }
+html.dark .markdown-body blockquote { color: #b0b0b0; border-left-color: #4a4a4a; }
+html.dark .markdown-body a { color: #f0c86c; }
+
+/* Transitions */
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 300ms ease-out;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-modal-in {
+  animation: modal-in 200ms ease-out;
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 250ms ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out;
+}
+
+/* ===== Memo 条目动画 ===== */
+@keyframes memo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.memo-item-enter {
+  opacity: 0;
+  animation: memo-enter 280ms ease-out forwards;
+}
+
+/* ===== Todo 条目动画 ===== */
+@keyframes todo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todo-item-enter {
+  opacity: 0;
+  animation: todo-enter 350ms ease-out forwards;
+}
+
+/* 删除线渐显：用 text-decoration-color 过渡实现 */
+.todo-text {
+  text-decoration-line: line-through;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 300ms ease-out;
+}
+
+.todo-completed .todo-text {
+  text-decoration-color: currentColor;
+}
+
+/* ===== Memo 退出动画 ===== */
+@keyframes memo-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.memo-item-exit {
+  animation: memo-exit 200ms ease-in forwards;
+}
+
+/* ===== Todo 退出动画 ===== */
+@keyframes todo-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.todo-item-exit {
+  animation: todo-exit 200ms ease-in forwards;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar-collapsed {
+    transform: translateX(-100%);
+  }
+}
+
+/* =========================================================
+   墨集 · 美学工具集
+   ========================================================= */
+
+/* ===== 宣纸纹理基底（应用根容器使用） ===== */
+.bg-zen {
+  background-color: #faf8f5;
+  background-image:
+    radial-gradient(at 12% 0%, rgba(214, 168, 75, 0.07) 0px, transparent 55%),
+    radial-gradient(at 88% 100%, rgba(201, 64, 67, 0.045) 0px, transparent 55%),
+    radial-gradient(at 50% 50%, rgba(45, 45, 45, 0.015) 0px, transparent 70%);
+}
+html.dark .bg-zen {
+  background-color: #1a1a1a;
+  background-image:
+    radial-gradient(at 12% 0%, rgba(214, 168, 75, 0.08) 0px, transparent 55%),
+    radial-gradient(at 88% 100%, rgba(201, 64, 67, 0.055) 0px, transparent 55%),
+    radial-gradient(at 50% 50%, rgba(232, 232, 232, 0.018) 0px, transparent 70%);
+}
+
+/* ===== 玻璃质感（Topbar / Modal 背板） ===== */
+.glass {
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  background-color: rgba(250, 248, 245, 0.78);
+}
+html.dark .glass {
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  background-color: rgba(24, 24, 24, 0.72);
+}
+.glass-strong {
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background-color: rgba(250, 248, 245, 0.88);
+}
+html.dark .glass-strong {
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background-color: rgba(20, 20, 20, 0.85);
+}
+
+/* ===== 朱砂印章 ===== */
+.seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #c94043 0%, #a82a2e 100%);
+  color: #faf8f5;
+  font-family: "Noto Serif SC", serif;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.18),
+    0 1px 3px rgba(201, 64, 67, 0.28);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* ===== 卡片轻提（hover 抬升） ===== */
+.lift-on-hover {
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+}
+html.dark .lift-on-hover {
+  /* 暗色模式下额外加描边以代替阴影 */
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 280ms ease;
+}
+
+/* ===== 笔画分割线（横向） ===== */
+.brush-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(45, 45, 45, 0.16) 20%,
+    rgba(45, 45, 45, 0.16) 80%,
+    transparent 100%
+  );
+}
+html.dark .brush-divider {
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(232, 232, 232, 0.14) 20%,
+    rgba(232, 232, 232, 0.14) 80%,
+    transparent 100%
+  );
+}
+
+/* ===== 动画：上滑淡入 ===== */
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up-fade {
+  animation: slide-up-fade 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ===== 动画：缩放淡入 ===== */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-scale-in {
+  animation: scale-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ===== 动画：墨韵晕开（用于场景图首次加载） ===== */
+@keyframes ink-spread {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+    filter: blur(4px);
+  }
+  60% {
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+.animate-ink-spread {
+  animation: ink-spread 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ===== 动画：极慢呼吸（用于印章/装饰） ===== */
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* ===== 减少动效偏好 ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
