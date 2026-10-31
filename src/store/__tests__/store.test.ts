@@ -298,4 +298,210 @@ describe('useAppStore', () => {
       expect(saveState).toHaveBeenCalled();
     });
   });
+
+  describe('并发提交', () => {
+    it('同一 tick 内连续新增不会丢失彼此的数据', () => {
+      vi.clearAllMocks();
+      const noteId = useAppStore.getState().addNote({
+        title: '并发笔记',
+        content: '',
+        tags: [],
+        isFavorite: false,
+      });
+      const todoId = useAppStore.getState().addTodo({ title: '并发待办', priority: 'low' });
+      const memoId = useAppStore.getState().addMemo({ content: '并发备忘' });
+
+      const state = useAppStore.getState();
+      expect(state.notes.some((n) => n.id === noteId)).toBe(true);
+      expect(state.todos.some((t) => t.id === todoId)).toBe(true);
+      expect(state.memos.some((m) => m.id === memoId)).toBe(true);
+
+      // 最后一次持久化的数据包含全部连续变更
+      const calls = vi.mocked(saveState).mock.calls;
+      const lastPersisted = calls[calls.length - 1][0];
+      expect(lastPersisted.notes.some((n) => n.id === noteId)).toBe(true);
+      expect(lastPersisted.todos.some((t) => t.id === todoId)).toBe(true);
+      expect(lastPersisted.memos.some((m) => m.id === memoId)).toBe(true);
+    });
+  });
+
+  describe('snapshot', () => {
+    it('返回全部五个集合的浅拷贝', () => {
+      const state = useAppStore.getState();
+      const snapshot = state.snapshot();
+      expect(snapshot.notes).not.toBe(state.notes);
+      expect(snapshot.memos).not.toBe(state.memos);
+      expect(snapshot.todos).not.toBe(state.todos);
+      expect(snapshot.events).not.toBe(state.events);
+      expect(snapshot.tags).not.toBe(state.tags);
+      expect(snapshot.notes).toEqual(state.notes);
+      expect(snapshot.memos).toEqual(state.memos);
+      expect(snapshot.todos).toEqual(state.todos);
+      expect(snapshot.events).toEqual(state.events);
+      expect(snapshot.tags).toEqual(state.tags);
+    });
+
+    it('不触发持久化', () => {
+      vi.clearAllMocks();
+      useAppStore.getState().snapshot();
+      expect(saveState).not.toHaveBeenCalled();
+    });
+
+    it('修改快照数组不影响 store', () => {
+      const snapshot = useAppStore.getState().snapshot();
+      snapshot.notes.push({
+        id: 'snap-note',
+        title: '快照',
+        content: '',
+        tags: [],
+        isFavorite: false,
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      });
+      expect(useAppStore.getState().notes.some((n) => n.id === 'snap-note')).toBe(false);
+    });
+  });
+
+  describe('标签级联', () => {
+    function seedTaggedNotes() {
+      useAppStore.setState({
+        notes: [
+          {
+            id: 'n1',
+            title: '带标签笔记',
+            content: '',
+            tags: ['test', '其他'],
+            isFavorite: false,
+            createdAt: '2025-01-01T00:00:00.000Z',
+            updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+          {
+            id: 'n2',
+            title: '无标签笔记',
+            content: '',
+            tags: ['无关'],
+            isFavorite: false,
+            createdAt: '2025-01-01T00:00:00.000Z',
+            updatedAt: '2025-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+    }
+
+    it('updateTag 改名时级联重写笔记 tags', () => {
+      seedTaggedNotes();
+      useAppStore.getState().updateTag('tag1', { name: 'renamed' });
+
+      const note = useAppStore.getState().notes.find((n) => n.id === 'n1')!;
+      expect(note.tags).toEqual(['renamed', '其他']);
+      const untouched = useAppStore.getState().notes.find((n) => n.id === 'n2')!;
+      expect(untouched.tags).toEqual(['无关']);
+      expect(saveState).toHaveBeenCalled();
+    });
+
+    it('updateTag 只改颜色时不改动笔记 tags', () => {
+      seedTaggedNotes();
+      useAppStore.getState().updateTag('tag1', { color: '#123456' });
+
+      const note = useAppStore.getState().notes.find((n) => n.id === 'n1')!;
+      expect(note.tags).toEqual(['test', '其他']);
+    });
+
+    it('updateTag 名称不变时不重复重写', () => {
+      seedTaggedNotes();
+      useAppStore.getState().updateTag('tag1', { name: 'test' });
+      const note = useAppStore.getState().notes.find((n) => n.id === 'n1')!;
+      expect(note.tags).toEqual(['test', '其他']);
+    });
+
+    it('updateTag 对不存在的标签不抛错', () => {
+      seedTaggedNotes();
+      expect(() => useAppStore.getState().updateTag('missing', { name: 'x' })).not.toThrow();
+      expect(useAppStore.getState().notes).toHaveLength(2);
+    });
+
+    it('deleteTag 级联从笔记 tags 中移除', () => {
+      seedTaggedNotes();
+      useAppStore.getState().deleteTag('tag1');
+
+      expect(useAppStore.getState().tags.some((t) => t.id === 'tag1')).toBe(false);
+      const note = useAppStore.getState().notes.find((n) => n.id === 'n1')!;
+      expect(note.tags).toEqual(['其他']);
+      expect(saveState).toHaveBeenCalled();
+    });
+
+    it('deleteTag 对不存在的标签静默成功', () => {
+      seedTaggedNotes();
+      expect(() => useAppStore.getState().deleteTag('missing')).not.toThrow();
+      expect(useAppStore.getState().notes).toHaveLength(2);
+      expect(saveState).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateTodo completedAt 不变量', () => {
+    function seedTodo(overrides: Record<string, unknown> = {}) {
+      useAppStore.setState({
+        todos: [
+          {
+            id: 't1',
+            title: '待办',
+            priority: 'medium',
+            completed: false,
+            createdAt: '2025-01-01T00:00:00.000Z',
+            ...overrides,
+          },
+        ],
+      });
+    }
+
+    it('completed 由 false 变 true 时补 completedAt', () => {
+      seedTodo();
+      useAppStore.getState().updateTodo('t1', { completed: true });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.completed).toBe(true);
+      expect(todo.completedAt).toBe('2025-07-09T12:00:00.000Z');
+    });
+
+    it('completed 由 true 变 false 时清除 completedAt', () => {
+      seedTodo({ completed: true, completedAt: '2025-01-02T00:00:00.000Z' });
+      useAppStore.getState().updateTodo('t1', { completed: false });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.completed).toBe(false);
+      expect(todo.completedAt).toBeUndefined();
+      expect('completedAt' in todo).toBe(false);
+    });
+
+    it('仅更新标题时保留已有 completedAt', () => {
+      seedTodo({ completed: true, completedAt: '2025-01-02T00:00:00.000Z' });
+      useAppStore.getState().updateTodo('t1', { title: '新标题' });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.title).toBe('新标题');
+      expect(todo.completedAt).toBe('2025-01-02T00:00:00.000Z');
+    });
+
+    it('显式传入 completedAt 时尊重传入值', () => {
+      seedTodo();
+      useAppStore.getState().updateTodo('t1', {
+        completed: true,
+        completedAt: '2025-03-03T03:03:03.000Z',
+      });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.completedAt).toBe('2025-03-03T03:03:03.000Z');
+    });
+
+    it('completed 已为 true 但缺 completedAt 时补齐', () => {
+      seedTodo({ completed: true });
+      useAppStore.getState().updateTodo('t1', { title: '补时间' });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.completedAt).toBe('2025-07-09T12:00:00.000Z');
+    });
+
+    it('对不存在的 ID 不抛错也不改变数据', () => {
+      seedTodo();
+      expect(() => useAppStore.getState().updateTodo('missing', { completed: true })).not.toThrow();
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.completed).toBe(false);
+      expect(todo.completedAt).toBeUndefined();
+    });
+  });
 });

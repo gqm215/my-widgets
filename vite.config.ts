@@ -130,8 +130,50 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/**/__tests__/**'],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/__tests__/**',
+        // 引导/环境相关文件，无业务逻辑，不纳入门槛
+        'src/main.tsx',
+        'src/components/PWARegister.tsx',
+        'src/test/**',
+        'src/vite-env.d.ts',
+        'src/types/**',
+      ],
       reporter: ['text', 'lcov', 'html'],
+      // 覆盖率门槛：只升不降（详见 docs/testing.md）
+      thresholds: {
+        global: {
+          statements: 70,
+          branches: 55,
+          functions: 65,
+          lines: 70,
+        },
+        'src/utils/**': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
+        'src/store/**': {
+          statements: 90,
+          branches: 85,
+          functions: 90,
+          lines: 90,
+        },
+        'src/components/ui/**': {
+          statements: 85,
+          branches: 75,
+          functions: 85,
+          lines: 85,
+        },
+        'src/hooks/**': {
+          statements: 85,
+          branches: 75,
+          functions: 85,
+          lines: 85,
+        },
+      },
     },
   },
 })

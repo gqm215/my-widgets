@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateWeeklyReport, reportToMarkdown, getCurrentWeekRange } from '@/utils/report';
+import {
+  generateWeeklyReport,
+  reportToMarkdown,
+  getCurrentWeekRange,
+  getWeekRange,
+  MEMO_SUMMARY_LENGTH,
+} from '@/utils/report';
 import type { Todo, Note, Memo, Event } from '@/types';
 
 // 固定一个"当前时间"为周三，方便测试本周范围
@@ -182,9 +188,6 @@ describe('reportToMarkdown', () => {
   });
 
   it('有日程时包含日程部分', () => {
-    const events: Event[] = [
-      { id: 'e1', title: 'Team Standup', startDate: new Date(NOW).toISOString(), isAllDay: false, repeat: 'none', createdAt: new Date(NOW).toISOString() },
-    ];
     const report = {
       ...generateWeeklyReport([], [], [], []),
       events: [{ title: 'Team Standup', date: new Date(NOW).toISOString(), isAllDay: false }],
@@ -208,5 +211,130 @@ describe('reportToMarkdown', () => {
     expect(md).not.toContain('### 笔记');
     expect(md).not.toContain('### 备忘');
     expect(md).not.toContain('### 日程');
+  });
+});
+describe('getWeekRange', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('offsetWeeks=0 与 getCurrentWeekRange 结果一致', () => {
+    expect(getWeekRange(0).monday.getTime()).toBe(getCurrentWeekRange().monday.getTime());
+    expect(getWeekRange(0).sunday.getTime()).toBe(getCurrentWeekRange().sunday.getTime());
+  });
+
+  it('offsetWeeks=-1 表示上一周（提前 7 天）', () => {
+    const current = getWeekRange(0);
+    const previous = getWeekRange(-1);
+    expect(current.monday.getTime() - previous.monday.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(current.sunday.getTime() - previous.sunday.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('offsetWeeks=1 表示下一周（延后 7 天）', () => {
+    const current = getWeekRange(0);
+    const next = getWeekRange(1);
+    expect(next.monday.getTime() - current.monday.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+    expect(next.sunday.getTime() - current.sunday.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('周一是本地周一 00:00，周日是本地周日 23:59:59.999', () => {
+    const range = getWeekRange(3);
+    expect(range.monday.getDay()).toBe(1);
+    expect(range.sunday.getDay()).toBe(0);
+    expect(range.monday.getHours()).toBe(0);
+    expect(range.sunday.getHours()).toBe(23);
+    expect(range.sunday.getMinutes()).toBe(59);
+    expect(range.sunday.getSeconds()).toBe(59);
+    expect(range.sunday.getMilliseconds()).toBe(999);
+  });
+
+  it('非法 offset 回退到本周', () => {
+    expect(getWeekRange(Number.NaN).monday.getTime()).toBe(getWeekRange(0).monday.getTime());
+  });
+});
+
+describe('generateWeeklyReport 指定周范围', () => {
+  const monday = new Date(2025, 5, 2, 0, 0, 0, 0); // 2025-06-02 周一
+  const sunday = new Date(2025, 5, 8, 23, 59, 59, 999); // 2025-06-08 周日
+  const range = { monday, sunday };
+
+  function inRangeISO(day: number, hour = 12): string {
+    return new Date(2025, 5, day, hour).toISOString();
+  }
+
+  it('按传入范围统计并生成 weekLabel', () => {
+    const notes: Note[] = [
+      { id: 'n1', title: '范围内', content: '', tags: [], isFavorite: false, createdAt: inRangeISO(3), updatedAt: inRangeISO(3) },
+      { id: 'n2', title: '范围外', content: '', tags: [], isFavorite: false, createdAt: inRangeISO(20), updatedAt: inRangeISO(20) },
+    ];
+    const memos: Memo[] = [
+      { id: 'm1', content: '范围内备忘', createdAt: inRangeISO(2, 1) },
+      { id: 'm2', content: '范围外备忘', createdAt: inRangeISO(9) },
+    ];
+    const events: Event[] = [
+      { id: 'e1', title: '范围内日程', startDate: inRangeISO(5), isAllDay: false, repeat: 'none', createdAt: inRangeISO(1) },
+      { id: 'e2', title: '范围外日程', startDate: inRangeISO(9, 0), isAllDay: false, repeat: 'none', createdAt: inRangeISO(1) },
+    ];
+    const todos: Todo[] = [
+      { id: 't1', title: '范围内完成', priority: 'high', completed: true, completedAt: inRangeISO(4), createdAt: inRangeISO(1) },
+    ];
+
+    const report = generateWeeklyReport(todos, notes, memos, events, range);
+    expect(report.stats).toEqual({ completedTodos: 1, newNotes: 1, newMemos: 1, eventsCount: 1 });
+    expect(report.weekLabel).toContain('2025年6月2日');
+    expect(report.weekLabel).toContain('6月8日');
+  });
+
+  it('非法日期字段被忽略', () => {
+    const report = generateWeeklyReport(
+      [{ id: 't1', title: 'x', priority: 'high', completed: true, completedAt: 'bad', createdAt: 'bad' }],
+      [{ id: 'n1', title: 'x', content: '', tags: [], isFavorite: false, createdAt: 'bad', updatedAt: 'bad' }],
+      [{ id: 'm1', content: 'x', createdAt: 'bad' }],
+      [{ id: 'e1', title: 'x', startDate: 'bad', isAllDay: false, repeat: 'none', createdAt: 'bad' }],
+      range
+    );
+    expect(report.stats).toEqual({ completedTodos: 0, newNotes: 0, newMemos: 0, eventsCount: 0 });
+  });
+});
+
+describe('备忘截断边界', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('摘要长度常量为 60', () => {
+    expect(MEMO_SUMMARY_LENGTH).toBe(60);
+  });
+
+  it('emoji 按码点截断，不会切断代理对', () => {
+    const content = '😀'.repeat(61);
+    const memos: Memo[] = [{ id: 'm1', content, createdAt: createInWeek(0) }];
+    const report = generateWeeklyReport([], [], memos, []);
+    const item = report.modules.find((m) => m.module === 'memo')!.items[0];
+    expect(item.endsWith('...')).toBe(true);
+    expect(Array.from(item)).toHaveLength(63);
+    expect(item.length).toBe(60 * 2 + 3);
+    const head = item.slice(0, item.length - 3);
+    expect(Array.from(head)).toHaveLength(60);
+    expect(Array.from(head).every((char) => char === '😀')).toBe(true);
+  });
+
+  it('正好 60 个 emoji 不截断', () => {
+    const content = '😀'.repeat(60);
+    const memos: Memo[] = [{ id: 'm1', content, createdAt: createInWeek(0) }];
+    const report = generateWeeklyReport([], [], memos, []);
+    const item = report.modules.find((m) => m.module === 'memo')!.items[0];
+    expect(item).toBe(content);
+    expect(item.endsWith('...')).toBe(false);
   });
 });
