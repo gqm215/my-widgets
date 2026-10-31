@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Plus } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
+import QuickCreate from "@/components/layout/QuickCreate";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const Today = lazy(() => import("@/pages/Today"));
@@ -34,23 +35,31 @@ function PageTransition({ children }: { children: ReactNode }) {
 /** 页面懒加载时的加载动画 — 东方美学风格 */
 function PageLoading() {
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full" role="status" aria-live="polite">
       <div className="flex flex-col items-center gap-3">
         <div className="relative w-8 h-8">
           <div className="absolute inset-0 rounded-full border-2 border-vermilion/20" />
           <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-vermilion animate-spin" />
         </div>
-        <span className="text-xs text-ink-300 dark:text-ink-500 animate-pulse">加载中</span>
+        <span className="text-xs text-ink-400 dark:text-ink-300 animate-pulse">加载中</span>
       </div>
     </div>
   );
 }
 
-function AppContent() {
+/**
+ * 应用外壳（不含 Router，便于测试直接挂载）：
+ * 侧边栏 + 移动端头部 + 桌面端 Topbar + 路由内容 + 全局新建菜单。
+ */
+export function AppContent() {
   const location = useLocation();
   const isNotesPage = location.pathname === '/notes' || location.pathname.startsWith('/notes/');
   const isSearchPage = location.pathname === '/search';
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+
+  const openQuickCreate = () => setQuickCreateOpen(true);
+  const closeQuickCreate = () => setQuickCreateOpen(false);
 
   return (
     <div className="flex h-screen bg-zen text-ink-700 dark:text-ink-100 overflow-hidden">
@@ -67,6 +76,7 @@ function AppContent() {
           </button>
           <h1 className="ml-3 text-lg font-serif font-semibold text-ink-900 dark:text-ink-100">墨集</h1>
           <button
+            onClick={openQuickCreate}
             className="ml-auto p-2 bg-vermilion hover:bg-vermilion-light text-white rounded-md transition-colors"
             aria-label="新建"
           >
@@ -74,7 +84,11 @@ function AppContent() {
           </button>
         </div>
         {/* 桌面端 Topbar */}
-        {!isNotesPage && !isSearchPage && <div className="hidden md:block"><Topbar /></div>}
+        {!isNotesPage && !isSearchPage && (
+          <div className="hidden md:block">
+            <Topbar onAddClick={openQuickCreate} />
+          </div>
+        )}
         <main className={`flex-1 overflow-auto ${(isNotesPage || isSearchPage) ? 'bg-zen' : ''}`}>
           <AnimatePresence mode="wait">
             <Suspense fallback={<PageLoading />}>
@@ -94,6 +108,9 @@ function AppContent() {
           </AnimatePresence>
         </main>
       </div>
+
+      {/* 全局新建菜单：桌面 Topbar 与移动端头部共用 */}
+      <QuickCreate open={quickCreateOpen} onClose={closeQuickCreate} />
     </div>
   );
 }

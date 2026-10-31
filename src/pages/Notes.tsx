@@ -1,9 +1,9 @@
 import { useAppStore } from '@/store';
-import { Plus, Star, Trash2, ArrowLeft, FileText } from 'lucide-react';
+import { Plus, Star, Trash2, ArrowLeft, FileText, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ConfirmDialog, Textarea, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import type { Note } from '@/types';
@@ -13,14 +13,16 @@ const ITEM_HEIGHT = 96;        // 每张笔记卡片高度（含间距）
 const SECTION_HEADER_HEIGHT = 28; // "收藏" 分组标题高度
 const VIRTUAL_THRESHOLD = 50;    // 超过此数量才启用虚拟滚动
 const OVERSCAN = 3;              // 上下额外渲染项数
+const SAVE_DEBOUNCE_MS = 400;    // 编辑自动保存防抖
 
 /* ========== 虚拟列表项类型 ========== */
-type FlatItem =
+export type FlatItem =
   | { type: 'section' }
   | { type: 'note'; note: Note; globalIndex: number };
 
 /** 构建扁平化列表（含分组标题） */
-function buildFlatItems(favorites: Note[], others: Note[]): FlatItem[] {
+// eslint-disable-next-line react-refresh/only-export-components -- 供虚拟列表单测复用
+export function buildFlatItems(favorites: Note[], others: Note[]): FlatItem[] {
   const items: FlatItem[] = [];
   if (favorites.length > 0) {
     items.push({ type: 'section' });
@@ -40,7 +42,8 @@ function getItemHeight(item: FlatItem): number {
 }
 
 /** 二分查找：找到第一个 offset >= target 的索引 */
-function findIndex(offsets: number[], target: number): number {
+// eslint-disable-next-line react-refresh/only-export-components -- 供虚拟列表单测复用
+export function findIndex(offsets: number[], target: number): number {
   let lo = 0, hi = offsets.length;
   while (lo < hi) {
     const mid = (lo + hi) >>> 1;
@@ -52,6 +55,9 @@ function findIndex(offsets: number[], target: number): number {
 
 export default function Notes() {
   const { id: urlId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const notes = useAppStore((state) => state.notes);
   const addNote = useAppStore((state) => state.addNote);
   const deleteNote = useAppStore((state) => state.deleteNote);
@@ -72,20 +78,86 @@ export default function Notes() {
   const [containerHeight, setContainerHeight] = useState(600);
   const rafRef = useRef(0);
 
-  // Auto-select note from URL param
-  useEffect(() => {
-    if (urlId) {
-      const note = notes.find((n) => n.id === urlId);
-      if (note) {
-        setSelectedNoteId(note.id);
-        setEditingTitle(note.title);
-        setEditingContent(note.content);
-        setShowEditorOnMobile(true);
-      }
-    }
-  }, [urlId]);  // eslint-disable-line react-hooks/exhaustive-deps
-
   const selectedNote = notes.find((n) => n.id === selectedNoteId);
+
+  /* ---------- URL ↔ 选中状态同步 ---------- */
+  useEffect(() => {
+    if (!urlId) {
+      setSelectedNoteId(null);
+      setShowEditorOnMobile(false);
+      return;
+    }
+    // 从 store 即时读取，避免把 notes 加入依赖导致编辑中被覆盖
+    const note = useAppStore.getState().notes.find((n) => n.id === urlId);
+    if (!note) return;
+    setSelectedNoteId(note.id);
+    setEditingTitle(note.title);
+    setEditingContent(note.content);
+    setShowEditorOnMobile(true);
+  }, [urlId]);
+
+  /* ---------- ?new=1：直接创建空笔记并进入编辑器 ---------- */
+  const consumedNewRef = useRef(false);
+  useEffect(() => {
+    if (searchParams.get('new') !== '1' || consumedNewRef.current) return;
+    consumedNewRef.current = true;
+    const newId = addNote({ title: '新笔记', content: '', tags: [], isFavorite: false });
+    setSelectedNoteId(newId);
+    setEditingTitle('新笔记');
+    setEditingContent('');
+    setShowEditorOnMobile(true);
+    // 先清掉 ?new=1，再跳到 /notes/:id（replace，不产生额外历史）
+    setSearchParams({}, { replace: true });
+    navigate(`/notes/${newId}`, { replace: true });
+  }, [searchParams, setSearchParams, addNote, navigate]);
+
+  /* ---------- 选中笔记的标签 ---------- */
+  const selectedTags = useMemo(() => selectedNote?.tags ?? [], [selectedNote]);
+  const availableTags = useMemo(
+    () => tags.filter((t) => !selectedTags.includes(t.name)),
+    [tags, selectedTags],
+  );
+
+  const updateSelectedTags = useCallback(
+    (nextTags: string[]) => {
+      if (!selectedNoteId) return;
+      updateNote(selectedNoteId, { tags: nextTags });
+    },
+    [selectedNoteId, updateNote],
+  );
+
+  const handleAddTag = (name: string) => {
+    if (!selectedNote || !name) return;
+    if (selectedNote.tags.includes(name)) return;
+    updateSelectedTags([...selectedNote.tags, name]);
+  };
+
+  const handleRemoveTag = (name: string) => {
+    if (!selectedNote) return;
+    updateSelectedTags(selectedNote.tags.filter((t) => t !== name));
+  };
+
+  /* ---------- 编辑保存：400ms 防抖 + 失焦保存 + 未变更不写 ---------- */
+  const isDirty = useCallback(() => {
+    if (!selectedNoteId) return false;
+    const note = useAppStore.getState().notes.find((n) => n.id === selectedNoteId);
+    if (!note) return false;
+    return note.title !== editingTitle || note.content !== editingContent;
+  }, [selectedNoteId, editingTitle, editingContent]);
+
+  const saveNow = useCallback(() => {
+    if (!isDirty() || !selectedNoteId) return;
+    updateNote(selectedNoteId, { title: editingTitle, content: editingContent });
+  }, [isDirty, selectedNoteId, updateNote, editingTitle, editingContent]);
+
+  useEffect(() => {
+    if (!selectedNoteId || !isDirty()) return;
+    const timer = setTimeout(() => {
+      if (!isDirty()) return;
+      updateNote(selectedNoteId, { title: editingTitle, content: editingContent });
+    }, SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [selectedNoteId, editingTitle, editingContent, isDirty, updateNote]);
 
   const filteredNotes = useMemo(() => {
     if (!filterTag) return notes;
@@ -108,7 +180,7 @@ export default function Notes() {
 
   const enableVirtualScroll = filteredNotes.length > VIRTUAL_THRESHOLD;
 
-  // 监听容器尺寸
+  // 监听容器尺寸（仅虚拟模式需要）
   useEffect(() => {
     const el = listContainerRef.current;
     if (!el || !enableVirtualScroll) return;
@@ -151,34 +223,44 @@ export default function Notes() {
   }, [enableVirtualScroll, flatItems, itemOffsets, scrollTop, containerHeight]);
 
   const handleCreateNote = () => {
+    saveNow();
     const newId = addNote({ title: '新笔记', content: '', tags: [], isFavorite: false });
     setSelectedNoteId(newId);
     setEditingTitle('新笔记');
     setEditingContent('');
     setShowEditorOnMobile(true);
+    navigate(`/notes/${newId}`, { replace: true });
   };
 
-  const handleSelectNote = (noteId: string) => {
-    setSelectedNoteId(noteId);
-    const note = notes.find((n) => n.id === noteId);
-    if (note) {
+  const handleSelectNote = useCallback(
+    (noteId: string) => {
+      const note = useAppStore.getState().notes.find((n) => n.id === noteId);
+      if (!note) return;
+      saveNow();
+      setSelectedNoteId(noteId);
       setEditingTitle(note.title);
       setEditingContent(note.content);
-    }
-    setShowEditorOnMobile(true);
-  };
-
-  const handleSaveNote = () => {
-    if (selectedNoteId) {
-      updateNote(selectedNoteId, {
-        title: editingTitle,
-        content: editingContent,
-      });
-    }
-  };
+      setShowEditorOnMobile(true);
+      // 选中状态同步到 /notes/:id（replace 不产生额外历史记录）
+      navigate(`/notes/${noteId}`, { replace: true });
+    },
+    [saveNow, navigate],
+  );
 
   const handleBackToList = () => {
+    saveNow();
+    setSelectedNoteId(null);
     setShowEditorOnMobile(false);
+    navigate('/notes', { replace: true });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteNote(deleteTarget);
+    setSelectedNoteId(null);
+    setDeleteTarget(null);
+    setShowEditorOnMobile(false);
+    navigate('/notes', { replace: true });
   };
 
   const tagsInNotes = useMemo(() => {
@@ -198,13 +280,13 @@ export default function Notes() {
       );
     }
 
-    // 虚拟滚动模式
+    // 虚拟滚动模式：固定项高 + 内部滚动
     if (enableVirtualScroll && visibleRange) {
       const visibleItems = flatItems.slice(visibleRange.start, visibleRange.end);
       return (
         <div style={{ height: totalHeight, position: 'relative' }}>
           <div style={{ transform: `translateY(${visibleRange.offsetY}px)` }}>
-            {visibleItems.map((item, vi) => {
+            {visibleItems.map((item) => {
               if (item.type === 'section') {
                 return (
                   <div key="fav-section" style={{ height: SECTION_HEADER_HEIGHT }}>
@@ -220,6 +302,7 @@ export default function Notes() {
                   onSelect={handleSelectNote}
                   onToggleFavorite={toggleFavoriteNote}
                   index={item.globalIndex}
+                  fixedHeight
                 />
               );
             })}
@@ -228,7 +311,7 @@ export default function Notes() {
       );
     }
 
-    // 常规渲染模式（≤ 50 条）
+    // 常规渲染模式（≤ 50 条）：自然高度，不锁死卡片高度
     return (
       <div className="space-y-3">
         {favoriteNotes.length > 0 && (
@@ -258,36 +341,54 @@ export default function Notes() {
         ))}
       </div>
     );
-  }, [filteredNotes, enableVirtualScroll, visibleRange, flatItems, totalHeight, favoriteNotes, otherNotes, selectedNoteId, filterTag, handleSelectNote, toggleFavoriteNote]);
+  }, [
+    filteredNotes,
+    enableVirtualScroll,
+    visibleRange,
+    flatItems,
+    totalHeight,
+    favoriteNotes,
+    otherNotes,
+    selectedNoteId,
+    filterTag,
+    handleSelectNote,
+    toggleFavoriteNote,
+  ]);
 
   return (
     <div className="flex h-full">
-      {/* Notes List 侧边栏：移动端全宽，桌面端 w-80 */}
-      <div className={cn(
-        'border-r border-paper-dark dark:border-ink-700 bg-paper-accent dark:bg-ink-900 flex flex-col flex-shrink-0',
-        'w-full md:w-80',
-        showEditorOnMobile ? 'hidden md:flex' : 'flex'
-      )}>
+      {/* 笔记列表侧栏：移动端全宽，桌面端 w-80 */}
+      <div
+        className={cn(
+          'border-r border-paper-dark dark:border-ink-700 bg-paper-accent dark:bg-ink-900 flex flex-col flex-shrink-0',
+          'w-full md:w-80',
+          showEditorOnMobile ? 'hidden md:flex' : 'flex',
+        )}
+      >
         <div className="p-4 border-b border-paper-dark dark:border-ink-700 flex items-center justify-between">
           <h2 className="font-serif font-semibold text-ink-900 dark:text-ink-100">笔记</h2>
           <button
+            type="button"
             onClick={handleCreateNote}
+            aria-label="新建笔记"
             className="p-2 hover:bg-paper-dark dark:hover:bg-ink-700 rounded-md transition-colors"
           >
             <Plus className="w-5 h-5 text-ink-700 dark:text-ink-300" strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Tag filter */}
+        {/* 标签筛选 */}
         {tagsInNotes.length > 0 && (
           <div className="px-4 py-2 border-b border-paper-dark dark:border-ink-700 flex flex-wrap gap-1">
             <button
+              type="button"
               onClick={() => setFilterTag(null)}
+              aria-pressed={filterTag === null}
               className={cn(
                 'text-xs px-2 py-1 rounded-full transition-colors',
                 filterTag === null
                   ? 'bg-ink-700 text-white'
-                  : 'bg-paper-dark dark:bg-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                  : 'bg-paper-dark dark:bg-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700',
               )}
             >
               全部
@@ -295,12 +396,14 @@ export default function Notes() {
             {tagsInNotes.map((tag) => (
               <button
                 key={tag.id}
+                type="button"
                 onClick={() => setFilterTag(tag.name)}
+                aria-pressed={filterTag === tag.name}
                 className={cn(
                   'text-xs px-2 py-1 rounded-full transition-colors',
                   filterTag === tag.name
                     ? 'bg-ink-700 text-white'
-                    : 'bg-paper-dark dark:bg-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700'
+                    : 'bg-paper-dark dark:bg-ink-700 text-ink-500 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700',
                 )}
               >
                 {tag.name}
@@ -309,58 +412,105 @@ export default function Notes() {
           </div>
         )}
 
-        <div ref={listContainerRef} className="flex-1 overflow-y-auto p-4">
+        <div
+          ref={listContainerRef}
+          className={cn('p-4', enableVirtualScroll && 'flex-1 min-h-0 overflow-y-auto')}
+        >
           {renderNoteList()}
         </div>
       </div>
 
-      {/* Editor：移动端全宽，桌面端 flex-1 */}
-      <div className={cn(
-        'flex-1 flex flex-col bg-paper dark:bg-ink-900',
-        !showEditorOnMobile ? 'hidden md:flex' : 'flex'
-      )}>
+      {/* 编辑器：移动端全宽，桌面端 flex-1 */}
+      <div
+        className={cn(
+          'flex-1 flex flex-col bg-paper dark:bg-ink-900 min-h-0',
+          !showEditorOnMobile ? 'hidden md:flex' : 'flex',
+        )}
+      >
         {selectedNote ? (
           <>
             <div className="p-4 border-b border-paper-dark dark:border-ink-700 flex items-center justify-between">
               <div className="flex items-center gap-2 flex-1">
-                {/* 移动端返回按钮 */}
                 <button
+                  type="button"
                   onClick={handleBackToList}
+                  aria-label="返回列表"
                   className="md:hidden p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded-md transition-colors text-ink-500 dark:text-ink-300"
                 >
                   <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
                 </button>
                 <input
                   type="text"
+                  aria-label="笔记标题"
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
-                  onBlur={handleSaveNote}
+                  onBlur={saveNow}
                   className="text-xl font-serif font-semibold text-ink-900 dark:text-ink-100 bg-transparent border-none focus:outline-none w-full"
                   placeholder="标题"
                 />
               </div>
               <button
+                type="button"
                 onClick={() => setDeleteTarget(selectedNote.id)}
+                aria-label="删除笔记"
                 className="p-2 hover:bg-paper-dark dark:hover:bg-ink-700 rounded-md transition-colors text-ink-400 dark:text-ink-300 hover:text-vermilion"
               >
                 <Trash2 className="w-5 h-5" strokeWidth={1.5} />
               </button>
             </div>
 
-            {/* 编辑器 + 预览：移动端上下堆叠，桌面端左右排列 */}
+            {/* 标签芯片编辑 */}
+            <div className="px-4 py-2 border-b border-paper-dark dark:border-ink-700 flex items-center gap-2 flex-wrap">
+              {selectedNote.tags.length === 0 ? (
+                <span className="text-xs text-ink-400 dark:text-ink-400">暂无标签</span>
+              ) : (
+                selectedNote.tags.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-ink-700 text-white"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(name)}
+                      aria-label={`移除标签${name}`}
+                      className="p-0.5 rounded-full hover:bg-white/20 transition-colors"
+                    >
+                      <X className="w-3 h-3" strokeWidth={2} />
+                    </button>
+                  </span>
+                ))
+              )}
+              <select
+                aria-label="添加标签"
+                value=""
+                onChange={(e) => {
+                  handleAddTag(e.target.value);
+                  e.target.value = '';
+                }}
+                className="text-xs px-2 py-1 rounded-full border border-paper-dark dark:border-ink-600 bg-transparent text-ink-500 dark:text-ink-300 focus:outline-none focus:ring-2 focus:ring-vermilion/20"
+              >
+                <option value="">+ 添加标签</option>
+                {availableTags.map((tag) => (
+                  <option key={tag.id} value={tag.name}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="flex-1 flex flex-col md:flex-row min-h-0">
-              {/* 编辑区域 */}
               <div className="w-full md:w-1/2 flex flex-col p-4 md:border-r border-paper-dark dark:border-ink-700 min-h-0">
                 <Textarea
+                  aria-label="笔记内容"
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
-                  onBlur={handleSaveNote}
+                  onBlur={saveNow}
                   className="w-full flex-1 bg-transparent border-none focus:ring-0 focus:border-transparent resize-none"
                   placeholder="开始写作…"
                 />
               </div>
 
-              {/* 预览区域 */}
               <div className="w-full md:w-1/2 p-4 overflow-y-auto border-t md:border-t-0 border-paper-dark dark:border-ink-700">
                 <div className="markdown-body">
                   <ReactMarkdown
@@ -415,13 +565,7 @@ export default function Notes() {
       <ConfirmDialog
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) {
-            deleteNote(deleteTarget);
-            setSelectedNoteId(null);
-            setDeleteTarget(null);
-          }
-        }}
+        onConfirm={handleConfirmDelete}
         title="删除笔记"
         message="确定要删除这条笔记吗？此操作不可撤销。"
         confirmLabel="删除"
@@ -438,27 +582,35 @@ function NoteItem({
   onSelect,
   onToggleFavorite,
   index,
+  fixedHeight = false,
 }: {
   note: Note;
   isSelected: boolean;
   onSelect: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   index: number;
+  fixedHeight?: boolean;
 }) {
   return (
     <div
+      data-testid={`note-${note.id}`}
       onClick={() => onSelect(note.id)}
       className={cn(
         'p-4 rounded-lg cursor-pointer transition-all duration-200 animate-fade-in',
         isSelected
           ? 'bg-white dark:bg-ink-800 shadow-paper dark:shadow-none'
-          : 'bg-white/50 dark:bg-ink-800/50 hover:bg-white dark:hover:bg-ink-800 hover:shadow-paper dark:hover:shadow-none'
+          : 'bg-white/50 dark:bg-ink-800/50 hover:bg-white dark:hover:bg-ink-800 hover:shadow-paper dark:hover:shadow-none',
       )}
-      style={{ animationDelay: `${index * 40}ms`, height: ITEM_HEIGHT - 12 }}
+      style={{
+        animationDelay: `${index * 40}ms`,
+        ...(fixedHeight ? { height: ITEM_HEIGHT - 12 } : {}),
+      }}
     >
       <div className="flex items-start justify-between">
         <h3 className="font-medium text-ink-900 dark:text-ink-100 line-clamp-1 flex-1">{note.title}</h3>
         <button
+          type="button"
+          aria-label={`${note.isFavorite ? '取消收藏' : '收藏'}${note.title}`}
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite(note.id);
@@ -468,7 +620,7 @@ function NoteItem({
           <Star
             className={cn(
               'w-4 h-4',
-              note.isFavorite ? 'fill-rattan text-rattan' : 'text-ink-300 dark:text-ink-500'
+              note.isFavorite ? 'fill-rattan text-rattan' : 'text-ink-300 dark:text-ink-500',
             )}
             strokeWidth={1.5}
           />

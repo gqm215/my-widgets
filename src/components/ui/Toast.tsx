@@ -1,25 +1,18 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  type ReactNode,
-} from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  ToastContext,
+  type ToastType,
+} from './toast-context';
 
-/* ---------- 类型定义 ---------- */
-
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+/* 类型从 toast-context 再导出，保持 `import type { ToastType } from './Toast'` 向后兼容 */
+export type { ToastType } from './toast-context';
 
 interface ToastItem {
   id: string;
   type: ToastType;
   message: string;
-}
-
-interface ToastContextValue {
-  toast: (type: ToastType, message: string) => void;
 }
 
 const iconMap: Record<ToastType, ReactNode> = {
@@ -36,18 +29,6 @@ const typeStyles: Record<ToastType, string> = {
   info: 'bg-ink-700 text-white dark:bg-ink-300 dark:text-ink-900',
 };
 
-/* ---------- Context ---------- */
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return ctx;
-}
-
 /* ---------- Provider ---------- */
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -55,7 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback((type: ToastType, message: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    setToasts((prev) => [...prev, { id, type, message }]);
+    // 最多同屏 3 条，超出丢弃最旧的，避免连续操作刷屏
+    setToasts((prev) => [...prev, { id, type, message }].slice(-3));
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -76,6 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => (
             <div
               key={t.id}
+              data-testid="toast-item"
               className={cn(
                 'pointer-events-auto flex items-center gap-2.5 pl-3.5 pr-3 py-2.5 rounded-xl',
                 'shadow-paper-lg dark:shadow-none text-sm font-medium tracking-wide',

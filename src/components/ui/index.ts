@@ -14,5 +14,7 @@ export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
 export { Textarea } from './Textarea';
 export type { TextareaProps } from './Textarea';
-export { ToastProvider, useToast } from './Toast';
-export type { ToastType } from './Toast';
+
+export { ToastProvider } from './Toast';
+export { ToastContext, useToast } from './toast-context';
+export type { ToastType, ToastContextValue } from './toast-context';

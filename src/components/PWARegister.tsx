@@ -2,8 +2,20 @@ import { useEffect, useState, memo } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { DownloadCloud, X, RefreshCw } from 'lucide-react';
 
+/** Chromium 的 beforeinstallprompt 事件（未进入 TS 标准 DOM 库） */
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+  prompt: () => Promise<void>;
+}
+
+/** Safari/iOS 会把 standalone 标记挂在 navigator 上 */
+interface NavigatorWithStandalone extends Navigator {
+  readonly standalone?: boolean;
+}
+
 function PWARegisterImpl() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
 
   const {
@@ -21,12 +33,13 @@ function PWARegisterImpl() {
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-      || (window.navigator as any).standalone === true;
+      || (window.navigator as NavigatorWithStandalone).standalone === true;
     if (isStandalone) return;
 
-    const handler = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    const handler = (event: Event) => {
+      const promptEvent = event as BeforeInstallPromptEvent;
+      promptEvent.preventDefault();
+      setDeferredPrompt(promptEvent);
       const dismissed = localStorage.getItem('moji_pwa_install_dismissed');
       if (!dismissed) setShowInstall(true);
     };

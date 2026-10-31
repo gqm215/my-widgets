@@ -1,94 +1,136 @@
-
-import { useAppStore } from '@/store';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { format } from 'date-fns';
 import { Trash2, CheckSquare, Calendar as CalendarIcon } from 'lucide-react';
-import { format, setHours, setMinutes } from 'date-fns';
-import { useState } from 'react';
-import { ConfirmDialog, Modal, Button, EmptyState } from '@/components/ui';
+import { useAppStore } from '@/store';
+import { toDayKey, combineDateTime } from '@/utils/date';
+import {
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  Input,
+  Modal,
+  useToast,
+} from '@/components/ui';
+import type { Memo } from '@/types';
+
+interface EventDraft {
+  memoId: string;
+  title: string;
+  location: string;
+  isAllDay: boolean;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+function draftFromMemo(memo: Memo): EventDraft {
+  return {
+    memoId: memo.id,
+    title: memo.content.length > 50 ? `${memo.content.slice(0, 50)}...` : memo.content,
+    location: '',
+    isAllDay: false,
+    date: toDayKey(new Date()),
+    startTime: '09:00',
+    endTime: '10:00',
+  };
+}
 
 export default function Memos() {
-  const memos = useAppStore(state => state.memos);
-  const addMemo = useAppStore(state => state.addMemo);
-  const deleteMemo = useAppStore(state => state.deleteMemo);
-  const memoToTodo = useAppStore(state => state.memoToTodo);
-  const addEvent = useAppStore(state => state.addEvent);
-  
+  const memos = useAppStore((state) => state.memos);
+  const addMemo = useAppStore((state) => state.addMemo);
+  const deleteMemo = useAppStore((state) => state.deleteMemo);
+  const memoToTodo = useAppStore((state) => state.memoToTodo);
+  const addEvent = useAppStore((state) => state.addEvent);
+  const { toast } = useToast();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const consumedNewRef = useRef(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
   const [newMemo, setNewMemo] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [exitingId, setExitingId] = useState<string | null>(null);
-  
-  // 备忘转日程对话框状态
-  const [eventTarget, setEventTarget] = useState<{ id: string; content: string } | null>(null);
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventLocation, setEventLocation] = useState('');
-  const [eventIsAllDay, setEventIsAllDay] = useState(false);
-  const [eventDate, setEventDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [eventStart, setEventStart] = useState('09:00');
-  const [eventEnd, setEventEnd] = useState('10:00');
-  
+  const [deleteTarget, setDeleteTarget] = useState<Memo | null>(null);
+  const [eventDraft, setEventDraft] = useState<EventDraft | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+
+  // ?new=1：聚焦输入框并清除参数
+  useEffect(() => {
+    if (searchParams.get('new') !== '1' || consumedNewRef.current) return;
+    consumedNewRef.current = true;
+    inputRef.current?.focus();
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const sortedMemos = useMemo(
+    () => [...memos].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [memos],
+  );
+
   const handleAddMemo = () => {
-    if (newMemo.trim()) {
-      addMemo({ content: newMemo });
-      setNewMemo('');
-    }
+    if (!newMemo.trim()) return;
+    addMemo({ content: newMemo.trim() });
+    setNewMemo('');
+    toast('success', '备忘已记录');
   };
-  
+
   const handleDelete = () => {
-    if (deleteTarget) {
-      setExitingId(deleteTarget);
-      setTimeout(() => {
-        deleteMemo(deleteTarget);
-        setDeleteTarget(null);
-        setExitingId(null);
-      }, 200);
+    if (!deleteTarget) return;
+    deleteMemo(deleteTarget.id);
+    toast('success', '备忘已删除');
+    setDeleteTarget(null);
+  };
+
+  const handleConvertToTodo = (memo: Memo) => {
+    const todoId = memoToTodo(memo.id);
+    if (todoId) {
+      toast('success', '已转为待办');
+    } else {
+      toast('error', '转换失败：备忘不存在');
     }
   };
 
-  // 打开备忘转日程对话框
-  const openEventModal = (id: string, content: string) => {
-    setEventTarget({ id, content });
-    setEventTitle(content.substring(0, 50) + (content.length > 50 ? '...' : ''));
-    setEventLocation('');
-    setEventIsAllDay(false);
-    setEventDate(format(new Date(), 'yyyy-MM-dd'));
-    setEventStart('09:00');
-    setEventEnd('10:00');
-  };
-
-  // 确认创建日程
   const handleCreateEvent = () => {
-    if (!eventTitle.trim() || !eventTarget) return;
-    const dateObj = new Date(eventDate);
-    let startDate: Date;
-    let endDate: Date | undefined;
+    if (!eventDraft) return;
+    if (!eventDraft.title.trim()) {
+      setDraftError('请输入日程标题');
+      return;
+    }
+    if (!eventDraft.date) {
+      setDraftError('请选择日期');
+      return;
+    }
 
-    if (eventIsAllDay) {
-      startDate = new Date(dateObj);
-      startDate.setHours(0, 0, 0, 0);
-      endDate = new Date(dateObj);
-      endDate.setHours(23, 59, 59, 999);
-    } else {
-      const [startH, startM] = (eventStart || '09:00').split(':').map(Number);
-      startDate = setMinutes(setHours(dateObj, startH || 9), startM || 0);
-      if (eventEnd) {
-        const [endH, endM] = eventEnd.split(':').map(Number);
-        endDate = setMinutes(setHours(dateObj, endH || 10), endM || 0);
-      }
+    const startDate = eventDraft.isAllDay
+      ? combineDateTime(eventDraft.date)
+      : combineDateTime(eventDraft.date, eventDraft.startTime);
+    const endDate = eventDraft.isAllDay
+      ? combineDateTime(eventDraft.date, '23:59')
+      : combineDateTime(eventDraft.date, eventDraft.endTime);
+
+    if (!startDate || !endDate) {
+      setDraftError('日期或时间格式不正确');
+      return;
+    }
+    if (new Date(endDate).getTime() < new Date(startDate).getTime()) {
+      setDraftError('结束时间不能早于开始时间');
+      return;
     }
 
     addEvent({
-      title: eventTitle.trim(),
-      location: eventLocation.trim() || undefined,
-      startDate: startDate.toISOString(),
-      endDate: endDate?.toISOString(),
-      isAllDay: eventIsAllDay,
+      title: eventDraft.title.trim(),
+      location: eventDraft.location.trim() || undefined,
+      startDate,
+      endDate,
+      isAllDay: eventDraft.isAllDay,
       repeat: 'none',
     });
-    setEventTarget(null);
+    toast('success', '已转为日程');
+    setEventDraft(null);
+    setDraftError(null);
   };
-  
+
   return (
     <div className="p-6 md:p-8 max-w-3xl mx-auto">
-      {/* 装饰页头 */}
       <div className="mb-8 animate-fade-in">
         <div className="flex items-baseline gap-3">
           <h2 className="text-2xl md:text-3xl font-serif font-semibold text-ink-900 dark:text-ink-100 tracking-wide">
@@ -101,9 +143,10 @@ export default function Memos() {
         <div className="brush-divider w-16 mt-3" aria-hidden />
       </div>
 
-      {/* Input */}
+      {/* 输入区 */}
       <div className="bg-white dark:bg-ink-800 rounded-xl shadow-paper dark:shadow-none border border-black/[0.03] dark:border-white/[0.03] p-4 mb-8 transition-all duration-200 ease-zen focus-within:shadow-paper-lg focus-within:border-vermilion/30">
         <textarea
+          ref={inputRef}
           value={newMemo}
           onChange={(e) => setNewMemo(e.target.value)}
           onKeyDown={(e) => {
@@ -112,60 +155,68 @@ export default function Memos() {
               handleAddMemo();
             }
           }}
+          aria-label="记录备忘"
           placeholder="记录灵感..."
           className="w-full border-none focus:outline-none resize-none text-ink-700 dark:text-ink-200 placeholder:text-ink-300 dark:placeholder:text-ink-500 bg-transparent leading-relaxed"
           rows={3}
         />
         <div className="flex justify-end mt-2">
-          <button
-            onClick={handleAddMemo}
-            disabled={!newMemo.trim()}
-            className="bg-vermilion hover:bg-vermilion-light disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-all duration-200 ease-zen font-medium tracking-wide shadow-sm hover:shadow-glow-vermilion active:scale-[0.97] disabled:active:scale-100"
-          >
+          <Button type="button" onClick={handleAddMemo} disabled={!newMemo.trim()}>
             添加
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* List */}
       <div className="space-y-4">
-        {memos.length === 0 ? (
+        {sortedMemos.length === 0 ? (
           <EmptyState
             scene
             title="暂无备忘"
             description="在此记录灵感与琐思，按下回车即可添加。"
           />
         ) : (
-          memos.map((memo, index) => (
+          sortedMemos.map((memo, index) => (
             <div
               key={memo.id}
-              className={`memo-item-enter bg-white dark:bg-ink-800 rounded-xl shadow-paper dark:shadow-none border border-black/[0.03] dark:border-white/[0.03] p-5 md:p-6 lift-on-hover hover:shadow-paper-lg dark:hover:border-white/[0.07]${exitingId === memo.id ? ' memo-item-exit' : ''}`}
+              data-testid={`memo-${memo.id}`}
+              className="memo-item-enter bg-white dark:bg-ink-800 rounded-xl shadow-paper dark:shadow-none border border-black/[0.03] dark:border-white/[0.03] p-5 md:p-6 lift-on-hover hover:shadow-paper-lg dark:hover:border-white/[0.07]"
               style={{ animationDelay: `${index * 40}ms` }}
             >
-              <p className="text-ink-700 dark:text-ink-200 whitespace-pre-wrap leading-relaxed">{memo.content}</p>
+              <p className="text-ink-700 dark:text-ink-200 whitespace-pre-wrap leading-relaxed">
+                {memo.content}
+              </p>
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm text-ink-400 dark:text-ink-400 font-medium tabular-nums">
                   {format(new Date(memo.createdAt), 'yyyy-MM-dd HH:mm')}
                 </span>
                 <div className="flex items-center space-x-1">
                   <button
-                    onClick={() => memoToTodo(memo.id)}
+                    type="button"
+                    onClick={() => handleConvertToTodo(memo)}
                     className="p-2 hover:bg-success/10 dark:hover:bg-success/15 rounded-lg transition-all duration-200 text-success hover:scale-110 active:scale-95"
                     title="转为待办"
+                    aria-label="转为待办"
                   >
                     <CheckSquare className="w-4 h-4" strokeWidth={1.5} />
                   </button>
                   <button
-                    onClick={() => openEventModal(memo.id, memo.content)}
+                    type="button"
+                    onClick={() => {
+                      setDraftError(null);
+                      setEventDraft(draftFromMemo(memo));
+                    }}
                     className="p-2 hover:bg-rattan/10 dark:hover:bg-rattan/15 rounded-lg transition-all duration-200 text-rattan hover:scale-110 active:scale-95"
                     title="转为日程"
+                    aria-label="转为日程"
                   >
                     <CalendarIcon className="w-4 h-4" strokeWidth={1.5} />
                   </button>
                   <button
-                    onClick={() => setDeleteTarget(memo.id)}
+                    type="button"
+                    onClick={() => setDeleteTarget(memo)}
                     className="p-2 hover:bg-vermilion/10 dark:hover:bg-vermilion/15 rounded-lg transition-all duration-200 text-vermilion hover:scale-110 active:scale-95"
                     title="删除"
+                    aria-label="删除"
                   >
                     <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                   </button>
@@ -176,7 +227,6 @@ export default function Memos() {
         )}
       </div>
 
-      {/* Confirm Delete Dialog */}
       <ConfirmDialog
         open={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
@@ -187,79 +237,85 @@ export default function Memos() {
         variant="danger"
       />
 
-      {/* 转为日程 Modal */}
-      <Modal open={eventTarget !== null} onClose={() => setEventTarget(null)} title="转为日程">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-ink-700 dark:text-ink-200 mb-1">标题</label>
-            <input
-              type="text"
-              value={eventTitle}
-              onChange={(e) => setEventTitle(e.target.value)}
-              placeholder="日程标题"
-              className="w-full px-3 py-2 border border-paper-dark dark:border-ink-600 rounded-md bg-white dark:bg-ink-700 text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-vermilion/50 transition-colors"
+      {/* 转为日程 */}
+      <Modal
+        open={eventDraft !== null}
+        onClose={() => setEventDraft(null)}
+        title="转为日程"
+      >
+        {eventDraft && (
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateEvent();
+            }}
+          >
+            <Input
+              label="标题"
+              value={eventDraft.title}
+              onChange={(e) => setEventDraft({ ...eventDraft, title: e.target.value })}
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreateEvent(); }}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-700 dark:text-ink-200 mb-1">日期</label>
-            <input
+            <Input
+              label="日期"
               type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              className="w-full px-3 py-2 border border-paper-dark dark:border-ink-600 rounded-md bg-white dark:bg-ink-700 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-vermilion/50 transition-colors"
+              value={eventDraft.date}
+              onChange={(e) => setEventDraft({ ...eventDraft, date: e.target.value })}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-700 dark:text-ink-200 mb-1">地点</label>
-            <input
-              type="text"
-              value={eventLocation}
-              onChange={(e) => setEventLocation(e.target.value)}
+            <Input
+              label="地点"
+              value={eventDraft.location}
+              onChange={(e) => setEventDraft({ ...eventDraft, location: e.target.value })}
               placeholder="可选"
-              className="w-full px-3 py-2 border border-paper-dark dark:border-ink-600 rounded-md bg-white dark:bg-ink-700 text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-vermilion/50 transition-colors"
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="memoIsAllDay"
-              checked={eventIsAllDay}
-              onChange={(e) => setEventIsAllDay(e.target.checked)}
-              className="w-4 h-4 rounded border-paper-dark dark:border-ink-600 text-vermilion focus:ring-vermilion/50"
-            />
-            <label htmlFor="memoIsAllDay" className="text-sm text-ink-700 dark:text-ink-200 cursor-pointer">全天</label>
-          </div>
-          {!eventIsAllDay && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-ink-700 dark:text-ink-200 mb-1">开始时间</label>
-                <input
-                  type="time"
-                  value={eventStart}
-                  onChange={(e) => setEventStart(e.target.value)}
-                  className="w-full px-3 py-2 border border-paper-dark dark:border-ink-600 rounded-md bg-white dark:bg-ink-700 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-vermilion/50 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ink-700 dark:text-ink-200 mb-1">结束时间</label>
-                <input
-                  type="time"
-                  value={eventEnd}
-                  onChange={(e) => setEventEnd(e.target.value)}
-                  className="w-full px-3 py-2 border border-paper-dark dark:border-ink-600 rounded-md bg-white dark:bg-ink-700 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-vermilion/50 transition-colors"
-                />
-              </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="memo-event-all-day"
+                type="checkbox"
+                checked={eventDraft.isAllDay}
+                onChange={(e) => setEventDraft({ ...eventDraft, isAllDay: e.target.checked })}
+                className="w-4 h-4 rounded border-paper-dark dark:border-ink-600 accent-vermilion"
+              />
+              <label
+                htmlFor="memo-event-all-day"
+                className="text-sm text-ink-700 dark:text-ink-200 cursor-pointer"
+              >
+                全天
+              </label>
             </div>
-          )}
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="ghost" onClick={() => setEventTarget(null)}>取消</Button>
-            <Button variant="primary" onClick={handleCreateEvent} disabled={!eventTitle.trim()}>创建日程</Button>
-          </div>
-        </div>
+            {!eventDraft.isAllDay && (
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="开始时间"
+                  type="time"
+                  value={eventDraft.startTime}
+                  onChange={(e) => setEventDraft({ ...eventDraft, startTime: e.target.value })}
+                />
+                <Input
+                  label="结束时间"
+                  type="time"
+                  value={eventDraft.endTime}
+                  onChange={(e) => setEventDraft({ ...eventDraft, endTime: e.target.value })}
+                />
+              </div>
+            )}
+            {draftError && (
+              <p role="alert" className="text-sm text-vermilion">
+                {draftError}
+              </p>
+            )}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setEventDraft(null)}>
+                取消
+              </Button>
+              <Button type="submit" variant="primary">
+                创建日程
+              </Button>
+            </div>
+          </form>
+        )}
       </Modal>
     </div>
   );
 }
-

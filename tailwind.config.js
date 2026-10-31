@@ -14,6 +14,7 @@ export default {
           800: '#242424',
           700: '#2d2d2d',
           500: '#4a4a4a',
+          400: '#6b6b6b',
           300: '#8a8a8a',
           100: '#e8e8e8',
         },
@@ -29,9 +30,9 @@ export default {
         danger: '#c94043',
       },
       fontFamily: {
-        serif: ['"Noto Serif SC"', 'serif'],
-        sans: ['"Noto Sans SC"', 'sans-serif'],
-        crimson: ['"Crimson Pro"', 'serif'],
+        serif: ['"Noto Serif SC"', '"Songti SC"', '"SimSun"', 'serif'],
+        sans: ['"Noto Sans SC"', '"PingFang SC"', '"Microsoft YaHei"', 'sans-serif'],
+        crimson: ['"Crimson Pro"', 'Georgia', 'serif'],
       },
       borderRadius: {
         'md': '8px',

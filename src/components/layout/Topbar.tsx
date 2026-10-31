@@ -2,20 +2,31 @@ import { Search, Plus } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
+import { searchAll, type SearchResultItem } from '@/utils/search';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { cn } from '@/lib/utils';
 
 interface TopbarProps {
   onAddClick?: () => void;
 }
 
-interface SearchResult {
-  type: 'note' | 'memo' | 'todo' | 'event';
-  id: string;
-  label: string;
-  match: string;
-  route: string;
-}
+const GROUP_ORDER: SearchResultItem['type'][] = ['note', 'memo', 'todo', 'event'];
 
+const GROUP_LABELS: Record<SearchResultItem['type'], string> = {
+  note: '笔记',
+  memo: '备忘',
+  todo: '待办',
+  event: '日程',
+};
+
+const MATCH_LABELS: Record<SearchResultItem['matchedField'], string> = {
+  title: '标题',
+  content: '内容',
+  description: '描述',
+  location: '地点',
+};
+
+/** 搜索结果下拉：按模块分组 + 键盘上下选择 + Enter 跳转 */
 export default function Topbar({ onAddClick }: TopbarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -29,7 +40,10 @@ export default function Topbar({ onAddClick }: TopbarProps) {
   const todos = useAppStore((s) => s.todos);
   const events = useAppStore((s) => s.events);
 
-  // Close dropdown when clicking outside
+  // 输入防抖：150ms 后才真正搜索，避免每次按键都全量扫描
+  const debouncedQuery = useDebouncedValue(searchQuery, 150);
+
+  // 点击外部关闭下拉
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -40,119 +54,69 @@ export default function Topbar({ onAddClick }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const searchResults = useMemo((): SearchResult[] => {
-    if (!searchQuery.trim()) return [];
-    const q = searchQuery.toLowerCase();
-    const results: SearchResult[] = [];
-
-    // Search notes
-    for (const note of notes) {
-      if (note.title.toLowerCase().includes(q)) {
-        results.push({ type: 'note', id: note.id, label: note.title, match: '标题', route: `/notes/${note.id}` });
-      } else if (note.content.toLowerCase().includes(q)) {
-        const idx = note.content.toLowerCase().indexOf(q);
-        const matchText = note.content.substring(Math.max(0, idx - 20), idx + q.length + 20);
-        results.push({ type: 'note', id: note.id, label: `${note.title} ...${matchText}...`, match: '内容', route: `/notes/${note.id}` });
-      }
-    }
-
-    // Search memos
-    for (const memo of memos) {
-      if (memo.content.toLowerCase().includes(q)) {
-        const idx = memo.content.toLowerCase().indexOf(q);
-        const matchText = memo.content.substring(Math.max(0, idx - 20), idx + q.length + 20);
-        results.push({
-          type: 'memo',
-          id: memo.id,
-          label: memo.content.length > 60 ? memo.content.substring(0, 60) + '...' : memo.content,
-          match: matchText.length > 60 ? '...' + matchText.substring(0, 60) + '...' : matchText,
-          route: '/memos',
-        });
-      }
-    }
-
-    // Search todos
-    for (const todo of todos) {
-      if (todo.title.toLowerCase().includes(q)) {
-        results.push({ type: 'todo', id: todo.id, label: todo.title, match: '标题', route: '/todos' });
-      } else if (todo.description?.toLowerCase().includes(q)) {
-        results.push({ type: 'todo', id: todo.id, label: todo.title, match: '描述', route: '/todos' });
-      }
-    }
-
-    // Search events
-    for (const event of events) {
-      if (event.title.toLowerCase().includes(q)) {
-        results.push({ type: 'event', id: event.id, label: event.title, match: '标题', route: '/events' });
-      } else if (event.description?.toLowerCase().includes(q)) {
-        results.push({ type: 'event', id: event.id, label: event.title, match: '描述', route: '/events' });
-      }
-    }
-
-    return results;
-  }, [searchQuery, notes, memos, todos, events]);
+  const searchResults = useMemo((): SearchResultItem[] => {
+    if (!debouncedQuery.trim()) return [];
+    return searchAll({ notes, memos, todos, events }, debouncedQuery, 30);
+  }, [debouncedQuery, notes, memos, todos, events]);
 
   const grouped = useMemo(() => {
-    return {
-      note: searchResults.filter((r) => r.type === 'note'),
-      memo: searchResults.filter((r) => r.type === 'memo'),
-      todo: searchResults.filter((r) => r.type === 'todo'),
-      event: searchResults.filter((r) => r.type === 'event'),
+    const groups: Record<SearchResultItem['type'], SearchResultItem[]> = {
+      note: [],
+      memo: [],
+      todo: [],
+      event: [],
     };
+    for (const result of searchResults) {
+      groups[result.type].push(result);
+    }
+    return groups;
   }, [searchResults]);
 
-  const groupLabels: Record<string, string> = {
-    note: '笔记',
-    memo: '备忘',
-    todo: '待办',
-    event: '日程',
-  };
-
-  // Flatten all results for keyboard navigation
+  // 键盘导航使用的扁平序列（与分组渲染顺序一致）
   const flatResults = useMemo(() => {
-    const flat: SearchResult[] = [];
-    for (const key of ['note', 'memo', 'todo', 'event'] as const) {
-      flat.push(...grouped[key]);
-    }
-    return flat;
+    return GROUP_ORDER.flatMap((type) => grouped[type]);
   }, [grouped]);
 
-  const clearSearch = useCallback(() => {
-    setSearchQuery('');
-    setSelectedIndex(-1);
+  const closeDropdown = useCallback((blur = false) => {
     setIsDropdownOpen(false);
-    inputRef.current?.blur();
+    setSelectedIndex(-1);
+    if (blur) inputRef.current?.blur();
   }, []);
+
+  const goToResult = useCallback(
+    (item: SearchResultItem) => {
+      navigate(item.route);
+      setSearchQuery('');
+      closeDropdown(true);
+    },
+    [navigate, closeDropdown],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        clearSearch();
+        setSearchQuery('');
+        closeDropdown(true);
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (isDropdownOpen && selectedIndex >= 0 && selectedIndex < flatResults.length) {
-          // Navigate to selected dropdown item
-          const item = flatResults[selectedIndex];
-          navigate(item.route);
-          clearSearch();
+          goToResult(flatResults[selectedIndex]);
         } else if (searchQuery.trim()) {
-          // Navigate to full search results page
           navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-          clearSearch();
+          setSearchQuery('');
+          closeDropdown(true);
         }
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (!isDropdownOpen && searchQuery.trim()) {
-          setIsDropdownOpen(true);
-        }
+        if (!isDropdownOpen && searchQuery.trim()) setIsDropdownOpen(true);
         setSelectedIndex((prev) => Math.min(prev + 1, flatResults.length - 1));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedIndex((prev) => Math.max(prev - 1, -1));
       }
     },
-    [isDropdownOpen, selectedIndex, flatResults, searchQuery, navigate, clearSearch],
+    [isDropdownOpen, selectedIndex, flatResults, searchQuery, navigate, closeDropdown, goToResult],
   );
 
   const formatDate = () => {
@@ -165,6 +129,8 @@ export default function Topbar({ onAddClick }: TopbarProps) {
     });
   };
 
+  const noResults = searchResults.length === 0;
+
   return (
     <div className="glass border-b border-black/[0.04] dark:border-white/[0.04] px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
       {/* 日期：小屏幕上缩小字号 */}
@@ -175,7 +141,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-3">
-        {/* Search：小屏幕上变窄 */}
+        {/* 搜索：防抖 + 分组结果下拉 */}
         <div className="relative" ref={dropdownRef}>
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300 dark:text-ink-400"
@@ -184,6 +150,10 @@ export default function Topbar({ onAddClick }: TopbarProps) {
           <input
             ref={inputRef}
             type="text"
+            role="searchbox"
+            aria-label="全局搜索"
+            aria-expanded={isDropdownOpen}
+            aria-controls="topbar-search-results"
             placeholder="搜索..."
             value={searchQuery}
             onChange={(e) => {
@@ -198,19 +168,24 @@ export default function Topbar({ onAddClick }: TopbarProps) {
             className="pl-10 pr-4 py-2 bg-white/60 dark:bg-ink-800/60 border border-black/[0.06] dark:border-white/[0.06] rounded-lg text-ink-700 dark:text-ink-100 placeholder-ink-400 dark:placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-vermilion/15 focus:border-vermilion/50 focus:bg-white dark:focus:bg-ink-800 w-40 md:w-64 transition-all duration-200 ease-zen"
           />
 
-          {/* Dropdown */}
           {isDropdownOpen && searchQuery.trim() && (
-            <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-ink-800 rounded-xl shadow-paper-xl dark:shadow-none border border-black/[0.04] dark:border-white/[0.06] max-h-96 overflow-y-auto z-50 animate-scale-in">
-              {searchResults.length === 0 ? (
-                <div className="p-4 text-center text-ink-400 dark:text-ink-400 text-sm">无搜索结果</div>
+            <div
+              id="topbar-search-results"
+              className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-ink-800 rounded-xl shadow-paper-xl dark:shadow-none border border-black/[0.04] dark:border-white/[0.06] max-h-96 overflow-y-auto z-50 animate-scale-in"
+            >
+              {noResults ? (
+                <div className="p-4 text-center text-ink-400 dark:text-ink-400 text-sm">
+                  无搜索结果
+                </div>
               ) : (
                 <>
-                  {Object.entries(grouped).map(([type, items]) => {
+                  {GROUP_ORDER.map((type) => {
+                    const items = grouped[type];
                     if (items.length === 0) return null;
                     return (
-                      <div key={type}>
+                      <div key={type} data-group={type}>
                         <div className="px-4 py-2 text-xs font-medium tracking-wide text-ink-400 dark:text-ink-400 bg-paper-dark/40 dark:bg-ink-700/40">
-                          {groupLabels[type]} ({items.length})
+                          {GROUP_LABELS[type]} ({items.length})
                         </div>
                         {items.map((item) => {
                           const globalIdx = flatResults.indexOf(item);
@@ -218,10 +193,8 @@ export default function Topbar({ onAddClick }: TopbarProps) {
                           return (
                             <button
                               key={`${type}-${item.id}`}
-                              onClick={() => {
-                                navigate(item.route);
-                                clearSearch();
-                              }}
+                              type="button"
+                              onClick={() => goToResult(item)}
                               className={cn(
                                 'w-full text-left px-4 py-3 transition-colors duration-150 border-b border-black/[0.03] dark:border-white/[0.04] last:border-b-0',
                                 isHighlighted
@@ -230,10 +203,10 @@ export default function Topbar({ onAddClick }: TopbarProps) {
                               )}
                             >
                               <div className="text-sm font-medium text-ink-900 dark:text-ink-100 line-clamp-1">
-                                {item.label}
+                                {item.title}
                               </div>
-                              <div className="text-xs text-ink-400 dark:text-ink-400 mt-0.5">
-                                匹配: {item.match}
+                              <div className="text-xs text-ink-400 dark:text-ink-400 mt-0.5 line-clamp-1">
+                                匹配: {MATCH_LABELS[item.matchedField]} · {item.snippet}
                               </div>
                             </button>
                           );
@@ -250,7 +223,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
           )}
         </div>
 
-        {/* Add Button */}
+        {/* 新建：接入全局 QuickCreate */}
         <button
           onClick={onAddClick}
           className="flex items-center space-x-2 bg-vermilion hover:bg-vermilion-light text-white px-4 py-2 rounded-lg transition-all duration-200 ease-zen font-medium tracking-wide shadow-sm hover:shadow-glow-vermilion active:scale-[0.97]"

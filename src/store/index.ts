@@ -22,6 +22,8 @@ export interface AppStore extends AppState {
   addTag: (tag: Omit<Tag, 'id'>) => void;
   updateTag: (id: string, tag: Partial<Tag>) => void;
   deleteTag: (id: string) => void;
+  /** 返回当前状态的纯数据快照（数组为浅拷贝，不触发持久化，用于导出） */
+  snapshot: () => AppState;
   /** 用给定数据整体替换当前状态（用于数据导入） */
   replaceAll: (state: AppState) => void;
 }
@@ -120,7 +122,27 @@ export const useAppStore = create<AppStore>((set, get) => {
 
     updateTodo: (id, todo) =>
       commit({
-        todos: get().todos.map((t) => (t.id === id ? { ...t, ...todo } : t)),
+        todos: get().todos.map((t) => {
+          if (t.id !== id) return t;
+
+          // 维护 completedAt 不变量：completed=true ⇔ completedAt 存在
+          const hasCompletedAtPatch = Object.prototype.hasOwnProperty.call(
+            todo,
+            'completedAt'
+          );
+          const completed = todo.completed ?? t.completed;
+          let completedAt = hasCompletedAtPatch ? todo.completedAt : t.completedAt;
+          if (completed && !completedAt) completedAt = nowISO();
+          if (!completed) completedAt = undefined;
+
+          const next: Todo = { ...t, ...todo, completed };
+          if (completedAt === undefined) {
+            delete next.completedAt;
+          } else {
+            next.completedAt = completedAt;
+          }
+          return next;
+        }),
       }),
 
     deleteTodo: (id) => commit({ todos: get().todos.filter((t) => t.id !== id) }),
@@ -155,12 +177,55 @@ export const useAppStore = create<AppStore>((set, get) => {
     addTag: (tag) =>
       commit({ tags: [...get().tags, { ...tag, id: generateId() }] }),
 
-    updateTag: (id, tag) =>
-      commit({
-        tags: get().tags.map((t) => (t.id === id ? { ...t, ...tag } : t)),
-      }),
+    updateTag: (id, tag) => {
+      const previous = get().tags.find((t) => t.id === id);
+      const tags = get().tags.map((t) => (t.id === id ? { ...t, ...tag } : t));
+      const next: Partial<AppStore> = { tags };
 
-    deleteTag: (id) => commit({ tags: get().tags.filter((t) => t.id !== id) }),
+      // 改名级联：笔记的 tags 里存的是标签名称，需要同步重写
+      if (
+        previous &&
+        typeof tag.name === 'string' &&
+        tag.name !== previous.name
+      ) {
+        const oldName = previous.name;
+        const newName = tag.name;
+        next.notes = get().notes.map((n) =>
+          n.tags.includes(oldName)
+            ? { ...n, tags: n.tags.map((name) => (name === oldName ? newName : name)) }
+            : n
+        );
+      }
+
+      commit(next);
+    },
+
+    deleteTag: (id) => {
+      const previous = get().tags.find((t) => t.id === id);
+      const tags = get().tags.filter((t) => t.id !== id);
+      if (!previous) {
+        commit({ tags });
+        return;
+      }
+      // 级联移除：从所有笔记的 tags 中删掉该标签名
+      const notes = get().notes.map((n) =>
+        n.tags.includes(previous.name)
+          ? { ...n, tags: n.tags.filter((name) => name !== previous.name) }
+          : n
+      );
+      commit({ tags, notes });
+    },
+
+    snapshot: (): AppState => {
+      const { notes, memos, todos, events, tags } = get();
+      return {
+        notes: [...notes],
+        memos: [...memos],
+        todos: [...todos],
+        events: [...events],
+        tags: [...tags],
+      };
+    },
 
     replaceAll: (next) => {
       saveState(next, true);

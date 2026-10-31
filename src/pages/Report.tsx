@@ -1,6 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '@/store';
-import { generateWeeklyReport, reportToMarkdown } from '@/utils/report';
+import {
+  generateWeeklyReport,
+  getWeekRange,
+  reportToMarkdown,
+} from '@/utils/report';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import {
@@ -8,10 +12,17 @@ import {
   FileText,
   Lightbulb,
   Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
   Download,
   TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui';
+
+/** 导出文件名：与当前展示周对应 */
+function getReportFileName(range: { monday: Date; sunday: Date }): string {
+  return `周报-${format(range.monday, 'yyyy-MM-dd')}_${format(range.sunday, 'yyyy-MM-dd')}.md`;
+}
 
 export default function Report() {
   const todos = useAppStore((s) => s.todos);
@@ -19,9 +30,14 @@ export default function Report() {
   const memos = useAppStore((s) => s.memos);
   const events = useAppStore((s) => s.events);
 
+  // 0 = 本周；-1 = 上一周；未来周禁用
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const range = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
+
   const report = useMemo(
-    () => generateWeeklyReport(todos, notes, memos, events),
-    [todos, notes, memos, events]
+    () => generateWeeklyReport(todos, notes, memos, events, range),
+    [todos, notes, memos, events, range]
   );
 
   const handleExport = () => {
@@ -30,12 +46,15 @@ export default function Report() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `周报-${report.weekLabel}.md`;
+    a.download = getReportFileName(range);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  const isCurrentWeek = weekOffset === 0;
+  const weekScope = isCurrentWeek ? '本周' : '该周';
 
   const statCards = [
     {
@@ -73,15 +92,43 @@ export default function Report() {
 
   return (
     <div className="p-4 md:p-8 animate-fade-in">
-      {/* 头部：标题 + 导出按钮 */}
+      {/* 头部：标题 + 翻周 + 导出按钮 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 md:mb-8 gap-4">
         <div>
           <h1 className="text-2xl font-serif font-bold text-ink-900 dark:text-ink-100">
             周报
           </h1>
-          <p className="text-ink-500 dark:text-ink-300 mt-1 text-sm">
-            {report.weekLabel}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              type="button"
+              onClick={() => setWeekOffset((prev) => prev - 1)}
+              aria-label="上一周"
+              className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded transition-colors text-ink-500 dark:text-ink-300"
+            >
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <p className="text-ink-500 dark:text-ink-300 text-sm min-w-[190px] text-center">
+              {report.weekLabel}
+            </p>
+            <button
+              type="button"
+              onClick={() => setWeekOffset((prev) => prev + 1)}
+              aria-label="下一周"
+              disabled={weekOffset >= 0}
+              className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded transition-colors text-ink-500 dark:text-ink-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setWeekOffset(0)}
+              aria-label="回到本周"
+              disabled={isCurrentWeek}
+              className="ml-1 px-2 py-0.5 text-xs border border-paper-dark dark:border-ink-600 rounded text-ink-500 dark:text-ink-300 hover:bg-paper-dark dark:hover:bg-ink-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              回到本周
+            </button>
+          </div>
         </div>
         <Button
           onClick={handleExport}
@@ -126,7 +173,7 @@ export default function Report() {
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-success" strokeWidth={1.5} />
             <span className="text-sm font-medium text-ink-700 dark:text-ink-200">
-              本周活动分布
+              {weekScope}活动分布
             </span>
             <span className="text-xs text-ink-400 dark:text-ink-300 ml-auto">
               共 {totalActivity} 项
@@ -225,7 +272,7 @@ export default function Report() {
               </div>
               {mod.total === 0 ? (
                 <p className="text-ink-400 dark:text-ink-300 text-sm py-3 text-center">
-                  本周暂无{mod.label}活动
+                  {weekScope}暂无{mod.label}活动
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -250,7 +297,7 @@ export default function Report() {
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-4 md:p-5 animate-fade-in">
           <h3 className="font-serif font-semibold text-ink-900 dark:text-ink-100 mb-3 flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-ink-500 dark:text-ink-300" strokeWidth={1.5} />
-            本周日程概览
+            {weekScope}日程概览
           </h3>
           <div className="space-y-2">
             {report.events.map((evt, idx) => (
@@ -283,10 +330,10 @@ export default function Report() {
             <FileText className="w-8 h-8 text-ink-300 dark:text-ink-400" strokeWidth={1} />
           </div>
           <p className="text-ink-500 dark:text-ink-300 text-lg font-serif mb-1">
-            本周暂无活动
+            {weekScope}暂无活动
           </p>
           <p className="text-ink-400 dark:text-ink-400 text-sm">
-            开始使用墨集记录你的日常，下周就能看到周报啦
+            {isCurrentWeek ? '开始使用墨集记录你的日常，下周就能看到周报啦' : '可切换回本周查看最新活动'}
           </p>
         </div>
       )}

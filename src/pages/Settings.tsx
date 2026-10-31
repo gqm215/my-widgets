@@ -1,10 +1,9 @@
-
-import { loadState, importState, resetState } from '@/utils/storage';
+import { importState, resetState } from '@/utils/storage';
 import { useAppStore } from '@/store';
 import { useState } from 'react';
-import { Sun, Moon, Upload, Download, AlertCircle, CheckCircle2, Trash2, Tag, Pencil, Plus, X } from 'lucide-react';
+import { Sun, Moon, Upload, Download, Trash2, Pencil, Plus, X } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
-import { ConfirmDialog, Input } from '@/components/ui';
+import { ConfirmDialog, Input, useToast } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
 const TAG_COLORS = [
@@ -21,11 +20,12 @@ const TAG_COLORS = [
 ];
 
 export default function Settings() {
-  const [dataExported, setDataExported] = useState(false);
-  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const { toggleTheme, isDark } = useTheme();
+  const { toast } = useToast();
+
   const replaceAll = useAppStore((s) => s.replaceAll);
+  const snapshot = useAppStore((s) => s.snapshot);
 
   // 标签管理
   const tags = useAppStore((s) => s.tags);
@@ -43,16 +43,17 @@ export default function Settings() {
   const [deleteTagTarget, setDeleteTagTarget] = useState<string | null>(null);
 
   const handleExportData = () => {
-    const data = loadState();
+    const data = snapshot();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `moji-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    setDataExported(true);
-    setTimeout(() => setDataExported(false), 3000);
+    toast('success', '数据已导出');
   };
 
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,15 +64,14 @@ export default function Settings() {
       const result = importState(reader.result as string);
       if (result.ok) {
         replaceAll(result.data);
-        setImportStatus({ type: 'success', message: '数据导入成功！' });
+        toast('success', '数据导入成功');
       } else {
-        setImportStatus({ type: 'error', message: (result as { ok: false; error: string }).error });
+        // 导入失败：不触碰当前 store 状态
+        toast('error', (result as { ok: false; error: string }).error);
       }
-      setTimeout(() => setImportStatus(null), 4000);
     };
     reader.onerror = () => {
-      setImportStatus({ type: 'error', message: '文件读取失败' });
-      setTimeout(() => setImportStatus(null), 4000);
+      toast('error', '文件读取失败');
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -81,8 +81,7 @@ export default function Settings() {
     const data = resetState();
     replaceAll(data);
     setResetDialogOpen(false);
-    setImportStatus({ type: 'success', message: '数据已重置为初始状态' });
-    setTimeout(() => setImportStatus(null), 4000);
+    toast('success', '数据已重置为初始状态');
   };
 
   // 标签操作
@@ -106,12 +105,13 @@ export default function Settings() {
     // 检查名称是否与其他标签重复
     const duplicate = tags.find((t) => t.id !== tagId && t.name === trimmed);
     if (duplicate) {
-      setImportStatus({ type: 'error', message: `标签名称「${trimmed}」已存在` });
-      setTimeout(() => setImportStatus(null), 4000);
+      toast('error', `标签名称「${trimmed}」已存在`);
       return;
     }
+    // 改名级联（笔记 tags 重写）由 store.updateTag 统一处理
     updateTag(tagId, { name: trimmed, color: editColor });
     setEditingTagId(null);
+    toast('success', '标签已更新');
   };
 
   const handleCreateTag = () => {
@@ -119,14 +119,14 @@ export default function Settings() {
     if (!trimmed) return;
     const duplicate = tags.find((t) => t.name === trimmed);
     if (duplicate) {
-      setImportStatus({ type: 'error', message: `标签名称「${trimmed}」已存在` });
-      setTimeout(() => setImportStatus(null), 4000);
+      toast('error', `标签名称「${trimmed}」已存在`);
       return;
     }
     addTag({ name: trimmed, color: newColor });
     setNewName('');
     setNewColor(TAG_COLORS[0]);
     setShowNewTag(false);
+    toast('success', '标签已创建');
   };
 
   const handleRequestDelete = (tagId: string) => {
@@ -135,22 +135,10 @@ export default function Settings() {
 
   const handleConfirmDelete = () => {
     if (!deleteTagTarget) return;
-    const tag = tags.find((t) => t.id === deleteTagTarget);
-    if (tag) {
-      // 检查该标签是否被笔记使用
-      const usedInNotes = notes.filter((n) => n.tags.includes(tag.name));
-      if (usedInNotes.length > 0) {
-        // 清理笔记中的该标签
-        usedInNotes.forEach((n) => {
-          const appStore = useAppStore.getState();
-          appStore.updateNote(n.id, {
-            tags: n.tags.filter((t) => t !== tag.name),
-          });
-        });
-      }
-    }
+    // 删除级联（从笔记 tags 移除）由 store.deleteTag 统一处理
     deleteTag(deleteTagTarget);
     setDeleteTagTarget(null);
+    toast('success', '标签已删除');
   };
 
   // 获取标签被使用计数
@@ -168,7 +156,7 @@ export default function Settings() {
   })();
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto">
       <h2 className="text-2xl font-serif font-semibold text-ink-900 dark:text-ink-100 mb-8">设置</h2>
 
       <div className="space-y-6">
@@ -180,6 +168,7 @@ export default function Settings() {
           </p>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={toggleTheme}
               className="flex items-center gap-2 px-4 py-2 rounded-md border border-paper-dark dark:border-ink-600 hover:bg-paper-dark dark:hover:bg-ink-700 transition-colors text-ink-700 dark:text-ink-200"
             >
@@ -205,7 +194,6 @@ export default function Settings() {
             管理笔记标签，创建、编辑或删除标签。
           </p>
 
-          {/* 标签列表 */}
           {tags.length === 0 ? (
             <p className="text-ink-400 dark:text-ink-300 text-sm py-2 text-center">
               暂无标签，点击下方按钮创建
@@ -223,24 +211,24 @@ export default function Settings() {
                       'border border-paper-dark dark:border-ink-600',
                       isEditing
                         ? 'bg-paper-accent dark:bg-ink-700/50'
-                        : 'hover:bg-paper-accent dark:hover:bg-ink-700/30'
+                        : 'hover:bg-paper-accent dark:hover:bg-ink-700/30',
                     )}
                   >
-                    {/* 颜色标识 */}
                     {isEditing ? (
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {TAG_COLORS.map((c) => (
                           <button
                             key={c}
+                            type="button"
                             onClick={() => setEditColor(c)}
+                            aria-label={`选择颜色 ${c}`}
                             className={cn(
                               'w-5 h-5 rounded-full border-2 transition-all',
                               editColor === c
                                 ? 'border-ink-900 dark:border-paper scale-110 shadow-md'
-                                : 'border-transparent hover:scale-105'
+                                : 'border-transparent hover:scale-105',
                             )}
                             style={{ backgroundColor: c }}
-                            title={c}
                           />
                         ))}
                       </div>
@@ -251,7 +239,6 @@ export default function Settings() {
                       />
                     )}
 
-                    {/* 名称 */}
                     {isEditing ? (
                       <Input
                         type="text"
@@ -263,6 +250,7 @@ export default function Settings() {
                         }}
                         className="flex-1 text-sm"
                         placeholder="标签名称"
+                        aria-label="编辑标签名称"
                         autoFocus
                       />
                     ) : (
@@ -276,11 +264,11 @@ export default function Settings() {
                       </span>
                     )}
 
-                    {/* 操作按钮 */}
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {isEditing ? (
                         <>
                           <button
+                            type="button"
                             onClick={() => handleSaveEdit(tag.id)}
                             disabled={!editName.trim()}
                             className="p-1.5 text-xs text-success hover:bg-success/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -288,7 +276,9 @@ export default function Settings() {
                             保存
                           </button>
                           <button
+                            type="button"
                             onClick={handleCancelEdit}
+                            aria-label="取消编辑标签"
                             className="p-1.5 hover:bg-paper-dark dark:hover:bg-ink-600 rounded transition-colors text-ink-400 dark:text-ink-300"
                           >
                             <X className="w-4 h-4" strokeWidth={1.5} />
@@ -297,13 +287,17 @@ export default function Settings() {
                       ) : (
                         <>
                           <button
+                            type="button"
                             onClick={() => handleStartEdit(tag.id)}
+                            aria-label={`编辑标签${tag.name}`}
                             className="p-1.5 hover:bg-paper-dark dark:hover:bg-ink-600 rounded transition-colors text-ink-400 dark:text-ink-300 hover:text-ink-700 dark:hover:text-ink-100"
                           >
                             <Pencil className="w-4 h-4" strokeWidth={1.5} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleRequestDelete(tag.id)}
+                            aria-label={`删除标签${tag.name}`}
                             className="p-1.5 hover:bg-vermilion/10 rounded transition-colors text-ink-400 dark:text-ink-300 hover:text-vermilion"
                           >
                             <Trash2 className="w-4 h-4" strokeWidth={1.5} />
@@ -317,22 +311,22 @@ export default function Settings() {
             </div>
           )}
 
-          {/* 新建标签 */}
           {showNewTag ? (
             <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-rattan/40 dark:border-rattan/30 bg-paper-accent dark:bg-ink-700/50">
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {TAG_COLORS.map((c) => (
                   <button
                     key={c}
+                    type="button"
                     onClick={() => setNewColor(c)}
+                    aria-label={`选择颜色 ${c}`}
                     className={cn(
                       'w-5 h-5 rounded-full border-2 transition-all',
                       newColor === c
                         ? 'border-ink-900 dark:border-paper scale-110 shadow-md'
-                        : 'border-transparent hover:scale-105'
+                        : 'border-transparent hover:scale-105',
                     )}
                     style={{ backgroundColor: c }}
-                    title={c}
                   />
                 ))}
               </div>
@@ -349,9 +343,11 @@ export default function Settings() {
                 }}
                 className="flex-1 text-sm"
                 placeholder="输入标签名称"
+                aria-label="新标签名称"
                 autoFocus
               />
               <button
+                type="button"
                 onClick={handleCreateTag}
                 disabled={!newName.trim()}
                 className="p-1.5 text-xs text-rattan hover:bg-rattan/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -359,10 +355,12 @@ export default function Settings() {
                 创建
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setShowNewTag(false);
                   setNewName('');
                 }}
+                aria-label="取消新建标签"
                 className="p-1.5 hover:bg-paper-dark dark:hover:bg-ink-600 rounded transition-colors text-ink-400 dark:text-ink-300"
               >
                 <X className="w-4 h-4" strokeWidth={1.5} />
@@ -370,6 +368,7 @@ export default function Settings() {
             </div>
           ) : (
             <button
+              type="button"
               onClick={() => setShowNewTag(true)}
               className="flex items-center gap-2 text-sm text-ink-500 dark:text-ink-400 hover:text-rattan dark:hover:text-rattan transition-colors"
             >
@@ -382,15 +381,16 @@ export default function Settings() {
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-6">
           <h3 className="font-medium text-ink-900 dark:text-ink-100 mb-3">数据管理</h3>
           <p className="text-ink-500 dark:text-ink-400 text-sm mb-4">
-            导出您的所有数据进行备份，或从备份文件恢复数据。
+            导出当前所有数据进行备份，或从备份文件恢复数据。
           </p>
           <div className="flex flex-wrap gap-3">
             <button
+              type="button"
               onClick={handleExportData}
               className="flex items-center gap-2 bg-ink-900 hover:bg-ink-700 text-white px-4 py-2 rounded-md transition-colors duration-200"
             >
               <Download className="w-4 h-4" strokeWidth={1.5} />
-              {dataExported ? '已导出' : '导出数据'}
+              导出数据
             </button>
             <label className="flex items-center gap-2 bg-ink-900 hover:bg-ink-700 text-white px-4 py-2 rounded-md transition-colors duration-200 cursor-pointer">
               <Upload className="w-4 h-4" strokeWidth={1.5} />
@@ -398,11 +398,13 @@ export default function Settings() {
               <input
                 type="file"
                 accept=".json"
+                aria-label="导入数据文件"
                 onChange={handleImportData}
                 className="hidden"
               />
             </label>
             <button
+              type="button"
               onClick={() => setResetDialogOpen(true)}
               className="flex items-center gap-2 border border-vermilion text-vermilion hover:bg-vermilion/10 px-4 py-2 rounded-md transition-colors duration-200"
             >
@@ -420,25 +422,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Import status toast */}
-      {importStatus && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-paper-lg dark:shadow-none text-sm font-medium transition-all duration-300 ${
-            importStatus.type === 'success'
-              ? 'bg-success text-white'
-              : 'bg-vermilion text-white'
-          }`}
-        >
-          {importStatus.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4" strokeWidth={1.5} />
-          ) : (
-            <AlertCircle className="w-4 h-4" strokeWidth={1.5} />
-          )}
-          {importStatus.message}
-        </div>
-      )}
-
-      {/* 重置数据确认 */}
       <ConfirmDialog
         open={resetDialogOpen}
         onClose={() => setResetDialogOpen(false)}
@@ -449,7 +432,6 @@ export default function Settings() {
         variant="danger"
       />
 
-      {/* 删除标签确认 */}
       <ConfirmDialog
         open={deleteTagTarget !== null}
         onClose={() => setDeleteTagTarget(null)}
@@ -468,4 +450,3 @@ export default function Settings() {
     </div>
   );
 }
-

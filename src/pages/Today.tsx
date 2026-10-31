@@ -1,9 +1,11 @@
 import { useAppStore } from '@/store';
-import { format } from 'date-fns';
+import { format, endOfDay, startOfDay } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { CheckSquare, Calendar as CalendarIcon, ChevronDown, ChevronUp, ExternalLink, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildDayIndex } from '@/utils/calendar';
+import { formatTime, toDayKey } from '@/utils/date';
 
 export default function Today() {
   const todos = useAppStore(state => state.todos);
@@ -11,8 +13,8 @@ export default function Today() {
   const toggleTodo = useAppStore(state => state.toggleTodo);
   const navigate = useNavigate();
 
-  const today = new Date();
-  const todayStr = format(today, 'yyyy-MM-dd');
+  const today = useMemo(() => new Date(), []);
+  const todayStr = toDayKey(today);
 
   const [expandedTodos, setExpandedTodos] = useState<Set<string>>(new Set());
 
@@ -27,14 +29,14 @@ export default function Today() {
   const completedTodosCount = todos.filter(t => t.completed).length;
   const totalTodosCount = todos.length;
 
-  const todayTodos = todos.filter(todo => {
-    if (!todo.dueDate) return false;
-    return format(new Date(todo.dueDate), 'yyyy-MM-dd') === todayStr;
-  });
-
-  const todayEvents = events.filter(event => {
-    return format(new Date(event.startDate), 'yyyy-MM-dd') === todayStr;
-  });
+  // 一次建索引（含循环日程展开），取出今日待办与日程
+  const todayIndex = useMemo(
+    () => buildDayIndex(todos, events, { from: startOfDay(today), to: endOfDay(today) }),
+    [todos, events, today],
+  );
+  const todayBucket = todayIndex.get(todayStr);
+  const todayTodos = todayBucket?.todos ?? [];
+  const todayEvents = todayBucket?.events ?? [];
 
   return (
     <div className="p-4 md:p-8">
@@ -148,6 +150,10 @@ export default function Today() {
                 >
                   <div className="flex items-start space-x-3">
                     <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={todo.completed}
+                      aria-label={`标记「${todo.title}」为${todo.completed ? '未完成' : '已完成'}`}
                       onClick={() => toggleTodo(todo.id)}
                       className={`w-5 h-5 rounded border-2 mt-0.5 flex-shrink-0 transition-colors duration-200 ${
                         todo.completed
@@ -212,7 +218,7 @@ export default function Today() {
                             </div>
                             <div>
                               <span className="text-ink-400 dark:text-ink-500">截止日期</span>
-                              <p className="text-ink-600 dark:text-ink-300 mt-0.5">{todo.dueDate ? format(new Date(todo.dueDate), 'yyyy-MM-dd') : '无'}</p>
+                              <p className="text-ink-600 dark:text-ink-300 mt-0.5">{todo.dueDate ?? '无'}</p>
                             </div>
                             {todo.completedAt && (
                               <div className="col-span-2">
@@ -261,11 +267,12 @@ export default function Today() {
                   )}
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-500 dark:text-ink-300">
-                      {event.isAllDay ? '全天' : format(new Date(event.startDate), 'HH:mm')}
-                      {event.endDate && !event.isAllDay && ` - ${format(new Date(event.endDate), 'HH:mm')}`}
+                      {event.isAllDay ? '全天' : formatTime(event.startDate)}
+                      {event.endDate && !event.isAllDay && ` - ${formatTime(event.endDate)}`}
                     </span>
                     <button
-                      onClick={() => navigate(`/calendar?date=${format(new Date(event.startDate), 'yyyy-MM-dd')}`)}
+                      type="button"
+                      onClick={() => navigate(`/calendar?date=${toDayKey(event.startDate)}`)}
                       className="flex items-center gap-1 text-xs text-rattan hover:text-rattan/80 transition-colors"
                     >
                       <ExternalLink className="w-3 h-3" strokeWidth={1.5} />

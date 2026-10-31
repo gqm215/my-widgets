@@ -1,5 +1,5 @@
-
-import { AppState } from '@/types';
+import type { AppState, Event, Memo, Note, Tag, Todo } from '@/types';
+import { toDate, toDayKey } from '@/utils/date';
 
 const STORAGE_KEY = 'moji-app-data';
 const STORAGE_VERSION = 1;
@@ -43,7 +43,7 @@ const initialData: AppState = {
       title: '体验墨集的功能',
       description: '探索各个模块，感受墨色纸韵的魅力',
       priority: 'high',
-      dueDate: new Date().toISOString(),
+      dueDate: toDayKey(new Date()),
       completed: false,
       createdAt: '2024-01-01T00:00:00.000Z',
     },
@@ -79,19 +79,243 @@ interface PersistedPayload {
   data: AppState;
 }
 
-/** 校验并归一化外部数据，防止脏数据破坏应用 */
-export function sanitize(raw: unknown): AppState | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const obj = raw as Partial<AppState>;
-  if (!Array.isArray(obj.notes) || !Array.isArray(obj.todos)) return null;
+/* =========================================================
+   条目级归一化工具
+   ========================================================= */
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? value : undefined;
+}
+
+function asTimestamp(value: unknown, fallback: string): string {
+  const text = asString(value);
+  if (!text || Number.isNaN(new Date(text).getTime())) return fallback;
+  return text;
+}
+
+function asPriority(value: unknown): Todo['priority'] {
+  return value === 'high' || value === 'low' || value === 'medium' ? value : 'medium';
+}
+
+function asRepeat(value: unknown): Event['repeat'] {
+  return value === 'daily' || value === 'weekly' || value === 'monthly' || value === 'none'
+    ? value
+    : 'none';
+}
+
+function sanitizeNote(raw: unknown, now: string): Note | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  const title = asOptionalString(raw.title);
+  if (!id || !title) return null;
+  const createdAt = asTimestamp(raw.createdAt, now);
   return {
-    notes: obj.notes ?? [],
-    memos: obj.memos ?? [],
-    todos: obj.todos ?? [],
-    events: obj.events ?? [],
-    tags: obj.tags ?? [],
+    id,
+    title,
+    content: typeof raw.content === 'string' ? raw.content : '',
+    tags: Array.isArray(raw.tags) ? raw.tags.filter((tag) => typeof tag === 'string') : [],
+    isFavorite: raw.isFavorite === true,
+    createdAt,
+    updatedAt: asTimestamp(raw.updatedAt, createdAt),
   };
 }
+
+function sanitizeMemo(raw: unknown, now: string): Memo | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  if (!id) return null;
+  return {
+    id,
+    content: typeof raw.content === 'string' ? raw.content : '',
+    createdAt: asTimestamp(raw.createdAt, now),
+  };
+}
+
+function sanitizeTodo(raw: unknown, now: string): Todo | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  const title = asOptionalString(raw.title);
+  if (!id || !title) return null;
+
+  const completed = raw.completed === true;
+  const todo: Todo = {
+    id,
+    title,
+    priority: asPriority(raw.priority),
+    completed,
+    createdAt: asTimestamp(raw.createdAt, now),
+  };
+
+  const description = asString(raw.description);
+  if (description) todo.description = description;
+  const dueDate = asOptionalString(raw.dueDate);
+  if (dueDate) todo.dueDate = dueDate;
+  const completedAt = asOptionalString(raw.completedAt);
+  if (completed && completedAt) todo.completedAt = completedAt;
+
+  return todo;
+}
+
+function sanitizeEvent(raw: unknown, now: string): Event | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  const title = asOptionalString(raw.title);
+  if (!id || !title) return null;
+
+  // startDate 的合法性在 normalizeState 中统一校验（非法则丢弃并 warn）
+  const event: Event = {
+    id,
+    title,
+    startDate: asOptionalString(raw.startDate) ?? '',
+    isAllDay: raw.isAllDay === true,
+    repeat: asRepeat(raw.repeat),
+    createdAt: asTimestamp(raw.createdAt, now),
+  };
+
+  const description = asString(raw.description);
+  if (description) event.description = description;
+  const location = asString(raw.location);
+  if (location) event.location = location;
+  const endDate = asOptionalString(raw.endDate);
+  if (endDate) event.endDate = endDate;
+
+  return event;
+}
+
+function sanitizeTag(raw: unknown): Tag | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  const name = asOptionalString(raw.name);
+  if (!id || !name) return null;
+  return {
+    id,
+    name,
+    color: asOptionalString(raw.color) ?? '#8a8a8a',
+  };
+}
+
+function sanitizeList<T>(
+  raw: unknown[],
+  sanitizeOne: (item: unknown) => T | null
+): T[] {
+  const result: T[] = [];
+  for (const item of raw) {
+    const sanitized = sanitizeOne(item);
+    if (sanitized) result.push(sanitized);
+  }
+  return result;
+}
+
+/**
+ * 校验并归一化外部数据，防止脏数据破坏应用。
+ *
+ * - 仅在 notes / todos 缺失或不是数组时返回 null
+ * - 其余集合缺失时补空数组
+ * - 条目级校验：丢弃缺少 id（笔记/待办/日程还需 title、标签还需 name）的条目
+ * - 补齐默认值：priority=medium、repeat=none、isFavorite=false、tags=[]、completed=false
+ * - 不处理日期迁移（见 normalizeState）
+ */
+export function sanitize(raw: unknown): AppState | null {
+  if (!isRecord(raw)) return null;
+  if (!Array.isArray(raw.notes) || !Array.isArray(raw.todos)) return null;
+
+  const now = nowISO();
+  return {
+    notes: sanitizeList(raw.notes, (item) => sanitizeNote(item, now)),
+    memos: Array.isArray(raw.memos) ? sanitizeList(raw.memos, (item) => sanitizeMemo(item, now)) : [],
+    todos: sanitizeList(raw.todos, (item) => sanitizeTodo(item, now)),
+    events: Array.isArray(raw.events) ? sanitizeList(raw.events, (item) => sanitizeEvent(item, now)) : [],
+    tags: Array.isArray(raw.tags) ? sanitizeList(raw.tags, sanitizeTag) : [],
+  };
+}
+
+/** 迁移旧版 Todo.dueDate（ISO 时间戳 → 本地日键 yyyy-MM-dd） */
+function normalizeTodoDueDate(todo: Todo): Todo {
+  if (!todo.dueDate) return todo;
+  const key = toDayKey(todo.dueDate);
+  if (!key) {
+    const next = { ...todo };
+    delete next.dueDate;
+    return next;
+  }
+  if (key === todo.dueDate) return todo;
+  return { ...todo, dueDate: key };
+}
+
+/** 校验日程日期：startDate 非法丢弃整条事件；endDate 非法仅移除该字段 */
+function normalizeEventDates(event: Event): Event | null {
+  const start = toDate(event.startDate);
+  if (!start) {
+    console.warn(
+      `[墨集] 已丢弃开始时间非法的日程：「${event.title}」(${event.id}) startDate=${String(
+        event.startDate
+      )}`
+    );
+    return null;
+  }
+
+  const next: Event = { ...event, startDate: start.toISOString() };
+  if (event.endDate !== undefined) {
+    const end = toDate(event.endDate);
+    if (!end) {
+      console.warn(
+        `[墨集] 已移除结束时间非法的日程字段：「${event.title}」(${event.id}) endDate=${String(
+          event.endDate
+        )}`
+      );
+      delete next.endDate;
+    } else {
+      next.endDate = end.toISOString();
+    }
+  }
+  return next;
+}
+
+/**
+ * 在 sanitize 基础上做数据迁移：
+ * - 旧 Todo.dueDate（ISO）→ 本地日键
+ * - 丢弃日期非法的日程（console.warn）
+ */
+export function normalizeState(raw: unknown): AppState | null {
+  const safe = sanitize(raw);
+  if (!safe) return null;
+
+  const todos: Todo[] = [];
+  for (const todo of safe.todos) {
+    const normalized = normalizeTodoDueDate(todo);
+    todos.push(normalized);
+  }
+
+  const events: Event[] = [];
+  for (const event of safe.events) {
+    const normalized = normalizeEventDates(event);
+    if (normalized) events.push(normalized);
+  }
+
+  return {
+    notes: safe.notes,
+    memos: safe.memos,
+    todos,
+    events,
+    tags: safe.tags,
+  };
+}
+
+/* =========================================================
+   读取 / 写入
+   ========================================================= */
 
 export function loadState(): AppState {
   try {
@@ -103,7 +327,7 @@ export function loadState(): AppState {
     const parsed = JSON.parse(raw);
     // 兼容旧版本直接存储 AppState 的情况
     const data = parsed?.data ? parsed.data : parsed;
-    const safe = sanitize(data);
+    const safe = normalizeState(data);
     return safe ?? initialData;
   } catch {
     return initialData;
@@ -112,35 +336,47 @@ export function loadState(): AppState {
 
 // 防抖写入：避免连续编辑时频繁 I/O
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingState: AppState | null = null;
 const SAVE_DEBOUNCE_MS = 300;
 
-export function saveState(state: AppState, immediate = false): void {
+/** 立即写出挂起状态（若没有挂起状态则什么也不做） */
+function writePendingState(): void {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  const execute = () => {
-    try {
-      const payload: PersistedPayload = { version: STORAGE_VERSION, data: state };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch (error) {
-      console.error('Failed to save state:', error);
-    }
-  };
-  if (immediate) {
-    execute();
-    return;
+  if (!pendingState) return;
+
+  const state = pendingState;
+  pendingState = null;
+  try {
+    const payload: PersistedPayload = { version: STORAGE_VERSION, data: state };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.error('Failed to save state:', error);
   }
-  saveTimer = setTimeout(execute, SAVE_DEBOUNCE_MS);
 }
 
-/** 立即刷新挂起的写入（用于页面卸载前） */
-export function flushState(): void {
+/**
+ * 保存状态：默认 300ms 防抖写入；immediate=true 时立即写出。
+ * 最后一次传入的 state 会作为 pendingState 保留，供 flushState 立即落盘。
+ */
+export function saveState(state: AppState, immediate = false): void {
+  pendingState = state;
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
-    // 注意：此处无法拿到最新 state，依赖调用方先 saveState(immediate)
   }
+  if (immediate) {
+    writePendingState();
+    return;
+  }
+  saveTimer = setTimeout(writePendingState, SAVE_DEBOUNCE_MS);
+}
+
+/** 立即刷新挂起的写入（用于页面卸载 / 切后台前） */
+export function flushState(): void {
+  writePendingState();
 }
 
 /** 导入外部 JSON 数据，返回是否成功 */
@@ -148,7 +384,7 @@ export function importState(jsonText: string): { ok: true; data: AppState } | { 
   try {
     const parsed = JSON.parse(jsonText);
     const candidate = parsed?.data ? parsed.data : parsed;
-    const safe = sanitize(candidate);
+    const safe = normalizeState(candidate);
     if (!safe) {
       return { ok: false, error: '数据格式不正确，缺少必要的 notes 或 todos 字段' };
     }

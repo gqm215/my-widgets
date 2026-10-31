@@ -48,8 +48,8 @@ export default function Sidebar({ mobileOpen: externalOpen, onMobileClose: exter
       {/* 顶部装饰：极淡水墨 */}
       <div className="absolute top-0 right-0 w-32 h-32 opacity-[0.06] pointer-events-none">
         <svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="96" cy="32" r="24" fill="#f6efe2"/>
-          <path d="M0,96 Q32,80 64,96 T128,96" stroke="#f6efe2" stroke-width="1.5" fill="none"/>
+          <circle cx="96" cy="32" r="24" fill="#f6efe2" />
+          <path d="M0,96 Q32,80 64,96 T128,96" stroke="#f6efe2" strokeWidth={1.5} fill="none" />
         </svg>
       </div>
 
