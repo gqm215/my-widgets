@@ -1,4 +1,4 @@
-// 墨集 轻量 Web 服务器 — 用于 nexe 打包为 .exe
+// 墨集 轻量 Web 服务器 — Node SEA 打包为 .exe 的入口脚本
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -6,8 +6,13 @@ const { exec } = require('child_process');
 
 const PORT = 8099;
 
-// dist 目录就是打包后的静态资源
-const DIST = path.join(__dirname, 'dist');
+// dist 目录就是打包后的静态资源：
+// - SEA 模式：release/墨集.exe 与 release/dist 同级
+// - 仓库模式（node scripts/server.cjs）：dist 在上一级
+const ROOT = fs.existsSync(path.join(__dirname, 'dist'))
+  ? __dirname
+  : path.resolve(__dirname, '..');
+const DIST = path.join(ROOT, 'dist');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

@@ -10,12 +10,15 @@
     "build": "tsc -p tsconfig.build.json && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "serve": "node scripts/server.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "verify": "npm run check && npm run lint && npm run test:coverage",
     "check": "tsc -b --noEmit",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder --win portable",
-    "pack": "npm run build && node --experimental-sea-config sea-config.json && node pack-step1.cjs && npx --yes postject release/墨集.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 && node pack-step2.cjs && node pack-clean.cjs"
+    "pack": "npm run build && node --experimental-sea-config scripts/sea-config.json && node scripts/pack-step1.cjs && npx --yes postject release/墨集.exe NODE_SEA_BLOB sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 && node scripts/pack-step2.cjs && node scripts/pack-clean.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

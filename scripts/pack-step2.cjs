@@ -2,8 +2,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = path.join(__dirname, 'dist');
-const dest = path.join(__dirname, 'release', 'dist');
+const ROOT = path.resolve(__dirname, '..');
+const src = path.join(ROOT, 'dist');
+const dest = path.join(ROOT, 'release', 'dist');
 
 fs.rmSync(dest, { recursive: true, force: true });
 fs.cpSync(src, dest, { recursive: true });

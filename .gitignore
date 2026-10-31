@@ -11,12 +11,16 @@ node_modules
 dist
 dist-ssr
 release
+coverage
+sea-prep.blob
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.trae
+.uploads
 .DS_Store
 *.suo
 *.ntvs*
