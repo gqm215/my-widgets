@@ -1,0 +1,16 @@
+[package]
+name = "moji"
+version = "1.1.0"
+description = "墨集 —— 本地优先的墨色笔记应用（Tauri v2 桌面壳）"
+authors = ["moji"]
+edition = "2024"
+rust-version = "1.90"
+
+[lib]
+name = "moji_lib"
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.5", features = [] }
