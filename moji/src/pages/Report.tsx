@@ -115,7 +115,7 @@ export default function Report() {
               onClick={() => setWeekOffset((prev) => prev + 1)}
               aria-label="下一周"
               disabled={weekOffset >= 0}
-              className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded transition-colors text-ink-500 dark:text-ink-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded transition-colors text-ink-500 dark:text-ink-300 disabled:text-ink-300 dark:disabled:text-ink-400 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <ChevronRight className="w-4 h-4" strokeWidth={1.5} />
             </button>
@@ -124,7 +124,7 @@ export default function Report() {
               onClick={() => setWeekOffset(0)}
               aria-label="回到本周"
               disabled={isCurrentWeek}
-              className="ml-1 px-2 py-0.5 text-xs border border-paper-dark dark:border-ink-600 rounded text-ink-500 dark:text-ink-300 hover:bg-paper-dark dark:hover:bg-ink-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="ml-1 px-2 py-0.5 text-xs border border-paper-dark dark:border-ink-600 rounded text-ink-500 dark:text-ink-300 hover:bg-paper-dark dark:hover:bg-ink-700 transition-colors disabled:text-ink-400 dark:disabled:text-ink-300 disabled:border-ink-100 dark:disabled:border-ink-700 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               回到本周
             </button>
@@ -203,7 +203,7 @@ export default function Report() {
             )}
             {report.stats.eventsCount > 0 && (
               <div
-                className="bg-ink-400 dark:bg-ink-500 h-full transition-all duration-500"
+                className="bg-ink-400 dark:bg-ink-300 h-full transition-all duration-500"
                 style={{ width: `${(report.stats.eventsCount / totalActivity) * 100}%` }}
                 title={`日程: ${report.stats.eventsCount}`}
               />
@@ -230,7 +230,7 @@ export default function Report() {
             )}
             {report.stats.eventsCount > 0 && (
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-sm bg-ink-400 dark:bg-ink-500" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-ink-400 dark:bg-ink-300" />
                 日程 {report.stats.eventsCount}
               </span>
             )}
@@ -327,12 +327,12 @@ export default function Report() {
       {!hasActivity && (
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-12 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-paper-dark dark:bg-ink-700 flex items-center justify-center">
-            <FileText className="w-8 h-8 text-ink-300 dark:text-ink-400" strokeWidth={1} />
+            <FileText className="w-8 h-8 text-ink-300" strokeWidth={1} />
           </div>
           <p className="text-ink-500 dark:text-ink-300 text-lg font-serif mb-1">
             {weekScope}暂无活动
           </p>
-          <p className="text-ink-400 dark:text-ink-400 text-sm">
+          <p className="text-ink-400 dark:text-ink-300 text-sm">
             {isCurrentWeek ? '开始使用墨集记录你的日常，下周就能看到周报啦' : '可切换回本周查看最新活动'}
           </p>
         </div>

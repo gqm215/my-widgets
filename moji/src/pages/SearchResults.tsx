@@ -138,7 +138,7 @@ export default function SearchResults() {
                   <h2 className="text-sm font-medium text-ink-400 dark:text-ink-300 mb-3 flex items-center gap-2">
                     <Icon className={cn('w-4 h-4', config.color)} strokeWidth={1.5} />
                     {config.label}
-                    <span className="text-ink-300 dark:text-ink-500">({items.length})</span>
+                    <span className="text-ink-300">({items.length})</span>
                   </h2>
 
                   <div className="space-y-3">

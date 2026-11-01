@@ -290,7 +290,7 @@ export default function Notes() {
               if (item.type === 'section') {
                 return (
                   <div key="fav-section" style={{ height: SECTION_HEADER_HEIGHT }}>
-                    <p className="text-xs text-ink-300 dark:text-ink-300 mb-2 px-1">收藏</p>
+                    <p className="text-xs text-ink-300 mb-2 px-1">收藏</p>
                   </div>
                 );
               }
@@ -316,7 +316,7 @@ export default function Notes() {
       <div className="space-y-3">
         {favoriteNotes.length > 0 && (
           <div className="mb-2">
-            <p className="text-xs text-ink-300 dark:text-ink-300 mb-2 px-1">收藏</p>
+            <p className="text-xs text-ink-300 mb-2 px-1">收藏</p>
             {favoriteNotes.map((note, idx) => (
               <NoteItem
                 key={note.id}
@@ -462,7 +462,7 @@ export default function Notes() {
             {/* 标签芯片编辑 */}
             <div className="px-4 py-2 border-b border-paper-dark dark:border-ink-700 flex items-center gap-2 flex-wrap">
               {selectedNote.tags.length === 0 ? (
-                <span className="text-xs text-ink-400 dark:text-ink-400">暂无标签</span>
+                <span className="text-xs text-ink-400 dark:text-ink-300">暂无标签</span>
               ) : (
                 selectedNote.tags.map((name) => (
                   <span
@@ -620,7 +620,7 @@ function NoteItem({
           <Star
             className={cn(
               'w-4 h-4',
-              note.isFavorite ? 'fill-rattan text-rattan' : 'text-ink-300 dark:text-ink-500',
+              note.isFavorite ? 'fill-rattan text-rattan' : 'text-ink-300',
             )}
             strokeWidth={1.5}
           />

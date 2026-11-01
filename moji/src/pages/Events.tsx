@@ -235,7 +235,7 @@ export default function Events() {
                       {event.location}
                     </p>
                   )}
-                  <div className="mt-2 flex items-center text-sm text-ink-500 dark:text-ink-400 gap-2 flex-wrap">
+                  <div className="mt-2 flex items-center text-sm text-ink-500 dark:text-ink-300 gap-2 flex-wrap">
                     <CalendarIcon className="w-4 h-4" strokeWidth={1.5} />
                     <span>
                       {format(new Date(event.startDate), 'yyyy年M月d日 EEEE', { locale: zhCN })}

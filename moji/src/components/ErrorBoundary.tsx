@@ -75,10 +75,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </h2>
 
             {/* 描述 */}
-            <p className="text-ink-500 dark:text-ink-400 leading-relaxed mb-2">
+            <p className="text-ink-500 dark:text-ink-300 leading-relaxed mb-2">
               页面渲染时出现了意外，如同画卷上的一笔墨渍。
             </p>
-            <p className="text-ink-400 dark:text-ink-500 text-sm leading-relaxed mb-10">
+            <p className="text-ink-400 dark:text-ink-300 text-sm leading-relaxed mb-10">
               墨集正在努力恢复，请稍后再试。
             </p>
 

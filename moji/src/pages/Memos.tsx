@@ -136,7 +136,7 @@ export default function Memos() {
           <h2 className="text-2xl md:text-3xl font-serif font-semibold text-ink-900 dark:text-ink-100 tracking-wide">
             备忘
           </h2>
-          <span className="text-xs md:text-sm text-ink-400 dark:text-ink-400 font-serif tracking-widest">
+          <span className="text-xs md:text-sm text-ink-400 dark:text-ink-300 font-serif tracking-widest">
             忽然而已
           </span>
         </div>
@@ -157,7 +157,7 @@ export default function Memos() {
           }}
           aria-label="记录备忘"
           placeholder="记录灵感..."
-          className="w-full border-none focus:outline-none resize-none text-ink-700 dark:text-ink-200 placeholder:text-ink-300 dark:placeholder:text-ink-500 bg-transparent leading-relaxed"
+          className="w-full border-none focus:outline-none resize-none text-ink-700 dark:text-ink-200 placeholder:text-ink-300 dark:placeholder:text-ink-400 bg-transparent leading-relaxed"
           rows={3}
         />
         <div className="flex justify-end mt-2">
@@ -186,7 +186,7 @@ export default function Memos() {
                 {memo.content}
               </p>
               <div className="flex items-center justify-between mt-4">
-                <span className="text-sm text-ink-400 dark:text-ink-400 font-medium tabular-nums">
+                <span className="text-sm text-ink-400 dark:text-ink-300 font-medium tabular-nums">
                   {format(new Date(memo.createdAt), 'yyyy-MM-dd HH:mm')}
                 </span>
                 <div className="flex items-center space-x-1">

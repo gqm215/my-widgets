@@ -336,7 +336,7 @@ export default function CalendarPage() {
             placeholder="待办事项标题"
             autoFocus
           />
-          <p className="text-xs text-ink-400 dark:text-ink-500">
+          <p className="text-xs text-ink-400 dark:text-ink-300">
             截止日期：{selectedDay ? format(selectedDay, 'yyyy-MM-dd') : '—'}
           </p>
           {newTodoError && (
@@ -461,7 +461,7 @@ function MonthView({
                     ? 'inline-flex items-center justify-center w-7 h-7 bg-vermilion text-white rounded-full'
                     : current
                       ? 'text-ink-900 dark:text-ink-100'
-                      : 'text-ink-300 dark:text-ink-500',
+                      : 'text-ink-300',
                 )}
               >
                 {format(day, 'd')}
@@ -481,7 +481,7 @@ function MonthView({
                     className={cn(
                       'text-xs px-2 py-1 rounded truncate',
                       todo.completed
-                        ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-500 line-through'
+                        ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 line-through'
                         : todo.priority === 'high'
                           ? 'bg-vermilion/20 text-vermilion'
                           : todo.priority === 'medium'
@@ -493,7 +493,7 @@ function MonthView({
                   </div>
                 ))}
                 {dayTodos.length + dayEvents.length > 3 && (
-                  <div className="text-xs text-ink-400 dark:text-ink-500">
+                  <div className="text-xs text-ink-400 dark:text-ink-300">
                     +{dayTodos.length + dayEvents.length - 3} 更多
                   </div>
                 )}
@@ -553,7 +553,7 @@ function WeekView({
               selectedDay && isSameDay(day, selectedDay) && 'ring-2 ring-inset ring-vermilion/50',
             )}
           >
-            <div className="text-xs text-ink-500 dark:text-ink-400">{format(day, 'EEE')}</div>
+            <div className="text-xs text-ink-500 dark:text-ink-300">{format(day, 'EEE')}</div>
             <div
               className={cn(
                 'text-lg font-semibold mt-0.5',
@@ -572,7 +572,7 @@ function WeekView({
       <div className="border-b border-paper-dark dark:border-ink-600">
         <div className="flex" style={{ minHeight: `${maxAllDay * 32}px` }}>
           <div className="w-16 flex-shrink-0 border-r border-paper-dark dark:border-ink-600 py-1 px-2 flex items-start">
-            <span className="text-[10px] text-ink-400 dark:text-ink-500">全天</span>
+            <span className="text-[10px] text-ink-400 dark:text-ink-300">全天</span>
           </div>
           {buckets.map(({ day, events: dayEvents, todos: dayTodos }) => (
             <div
@@ -619,7 +619,7 @@ function WeekView({
                 style={{ height: HOUR_HEIGHT }}
                 className="border-b border-paper-dark dark:border-ink-600 flex items-start justify-end pr-2"
               >
-                <span className="text-[10px] text-ink-400 dark:text-ink-500 -mt-1.5">
+                <span className="text-[10px] text-ink-400 dark:text-ink-300 -mt-1.5">
                   {String(h).padStart(2, '0')}:00
                 </span>
               </div>

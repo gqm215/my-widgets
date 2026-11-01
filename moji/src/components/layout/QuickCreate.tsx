@@ -89,7 +89,7 @@ export function QuickCreate({ open, onClose }: QuickCreateProps) {
                 <span className="block text-sm font-medium text-ink-900 dark:text-ink-100">
                   {option.label}
                 </span>
-                <span className="block text-xs text-ink-400 dark:text-ink-400 mt-0.5 truncate">
+                <span className="block text-xs text-ink-400 dark:text-ink-300 mt-0.5 truncate">
                   {option.description}
                 </span>
               </span>

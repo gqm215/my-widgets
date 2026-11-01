@@ -144,7 +144,7 @@ export default function Todos() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-serif font-semibold text-ink-900 dark:text-ink-100">待办</h2>
-          <p className="text-sm text-ink-400 dark:text-ink-400 mt-1">
+          <p className="text-sm text-ink-400 dark:text-ink-300 mt-1">
             共 {todos.length} 项 · 已完成 {completedCount} 项
           </p>
         </div>
@@ -158,7 +158,7 @@ export default function Todos() {
       <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-4 mb-6 space-y-3">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-1">
-            <Filter className="w-4 h-4 text-ink-400 dark:text-ink-500 mr-1" strokeWidth={1.5} />
+            <Filter className="w-4 h-4 text-ink-400 dark:text-ink-300 mr-1" strokeWidth={1.5} />
             {(Object.entries({
               all: '全部',
               incomplete: '未完成',
@@ -216,7 +216,7 @@ export default function Todos() {
           <div className="w-px h-5 bg-paper-dark dark:bg-ink-600" />
 
           <div className="flex items-center gap-1" aria-label="排序方式">
-            <ArrowUpDown className="w-4 h-4 text-ink-400 dark:text-ink-500 mr-1" strokeWidth={1.5} />
+            <ArrowUpDown className="w-4 h-4 text-ink-400 dark:text-ink-300 mr-1" strokeWidth={1.5} />
             {(Object.entries({
               createdAt: '创建时间',
               dueDate: '截止日期',
@@ -304,7 +304,7 @@ export default function Todos() {
                     {todo.title}
                   </h3>
                   {todo.description && (
-                    <p className="text-ink-400 dark:text-ink-500 text-sm mt-1">{todo.description}</p>
+                    <p className="text-ink-400 dark:text-ink-300 text-sm mt-1">{todo.description}</p>
                   )}
                   <div className="flex items-center mt-2 space-x-3 flex-wrap gap-y-1">
                     <span
@@ -319,7 +319,7 @@ export default function Todos() {
                       {PRIORITY_LABELS[todo.priority]}
                     </span>
                     {todo.dueDate && (
-                      <span className="text-xs text-ink-400 dark:text-ink-500">
+                      <span className="text-xs text-ink-400 dark:text-ink-300">
                         截止 {todo.dueDate}
                       </span>
                     )}
@@ -333,7 +333,7 @@ export default function Todos() {
                   type="button"
                   onClick={() => setDeleteTarget(todo)}
                   aria-label={`删除${todo.title}`}
-                  className="p-2 hover:bg-paper-dark dark:hover:bg-ink-700 rounded-md transition-colors text-ink-400 dark:text-ink-500 hover:text-vermilion"
+                  className="p-2 hover:bg-paper-dark dark:hover:bg-ink-700 rounded-md transition-colors text-ink-400 dark:text-ink-300 hover:text-vermilion"
                 >
                   <Trash2 className="w-4 h-4" strokeWidth={1.5} />
                 </button>

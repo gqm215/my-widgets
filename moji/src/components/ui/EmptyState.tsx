@@ -57,7 +57,7 @@ export function EmptyState({ icon, title, description, action, scene, className 
       </h3>
 
       {description && (
-        <p className="text-ink-400 dark:text-ink-400 text-sm max-w-xs leading-relaxed mb-2">
+        <p className="text-ink-400 dark:text-ink-300 text-sm max-w-xs leading-relaxed mb-2">
           {description}
         </p>
       )}

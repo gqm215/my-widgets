@@ -42,7 +42,7 @@ export function Button({
         'transition-all duration-200 ease-zen',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-vermilion/40 focus-visible:ring-offset-1',
         'active:scale-[0.97] active:transition-transform active:duration-100',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+        'disabled:opacity-60 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100',
         variants[variant],
         sizes[size],
         className

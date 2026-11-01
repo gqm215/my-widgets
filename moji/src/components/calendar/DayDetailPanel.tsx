@@ -58,7 +58,7 @@ export function DayDetailPanel({
           type="button"
           onClick={onClose}
           aria-label="关闭日期详情"
-          className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded text-ink-400 dark:text-ink-500 transition-colors"
+          className="p-1 hover:bg-paper-dark dark:hover:bg-ink-700 rounded text-ink-400 dark:text-ink-300 transition-colors"
         >
           <X className="w-4 h-4" strokeWidth={1.5} />
         </button>
@@ -72,7 +72,7 @@ export function DayDetailPanel({
         <div className="space-y-3 flex-1">
           {sortedEvents.length > 0 && (
             <section aria-label="当日日程">
-              <p className="text-xs text-ink-400 dark:text-ink-500 mb-1.5 font-medium">日程</p>
+              <p className="text-xs text-ink-400 dark:text-ink-300 mb-1.5 font-medium">日程</p>
               {sortedEvents.map((event) => (
                 <div
                   key={`${event.id}-${event.startDate}`}
@@ -88,7 +88,7 @@ export function DayDetailPanel({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-ink-400 dark:text-ink-500 flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-ink-400 dark:text-ink-300 flex items-center gap-1 mt-0.5">
                     <CalendarClock className="w-3 h-3" strokeWidth={1.5} />
                     {event.isAllDay ? '全天' : formatTime(event.startDate)}
                     {event.endDate && !event.isAllDay && ` - ${formatTime(event.endDate)}`}
@@ -100,17 +100,17 @@ export function DayDetailPanel({
 
           {todos.length > 0 && (
             <section aria-label="当日待办">
-              <p className="text-xs text-ink-400 dark:text-ink-500 mb-1.5 font-medium">待办</p>
+              <p className="text-xs text-ink-400 dark:text-ink-300 mb-1.5 font-medium">待办</p>
               {todos.map((todo) => (
                 <div
                   key={todo.id}
                   className={cn(
                     'text-sm px-2 py-1.5 rounded mb-1',
                     todo.completed
-                      ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-500 line-through'
+                      ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 line-through'
                       : todo.priority === 'high'
                         ? 'bg-vermilion/10 text-ink-900 dark:text-ink-100'
-                        : 'bg-ink-50 dark:bg-ink-700/50 text-ink-700 dark:text-ink-200',
+                        : 'bg-paper-dark dark:bg-ink-700/50 text-ink-700 dark:text-ink-200',
                   )}
                 >
                   {todo.title}

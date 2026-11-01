@@ -163,7 +163,7 @@ export default function Settings() {
         {/* 主题切换 */}
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-6">
           <h3 className="font-medium text-ink-900 dark:text-ink-100 mb-3">外观</h3>
-          <p className="text-ink-500 dark:text-ink-400 text-sm mb-4">
+          <p className="text-ink-500 dark:text-ink-300 text-sm mb-4">
             选择您偏好的外观模式。
           </p>
           <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export default function Settings() {
         {/* 标签管理 */}
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-6">
           <h3 className="font-medium text-ink-900 dark:text-ink-100 mb-3">标签管理</h3>
-          <p className="text-ink-500 dark:text-ink-400 text-sm mb-4">
+          <p className="text-ink-500 dark:text-ink-300 text-sm mb-4">
             管理笔记标签，创建、编辑或删除标签。
           </p>
 
@@ -257,7 +257,7 @@ export default function Settings() {
                       <span className="flex-1 text-sm text-ink-700 dark:text-ink-200 font-medium">
                         {tag.name}
                         {usageCount > 0 && (
-                          <span className="ml-2 text-xs text-ink-400 dark:text-ink-400">
+                          <span className="ml-2 text-xs text-ink-400 dark:text-ink-300">
                             ({usageCount} 篇笔记)
                           </span>
                         )}
@@ -271,7 +271,7 @@ export default function Settings() {
                             type="button"
                             onClick={() => handleSaveEdit(tag.id)}
                             disabled={!editName.trim()}
-                            className="p-1.5 text-xs text-success hover:bg-success/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="p-1.5 text-xs text-success hover:bg-success/10 rounded transition-colors disabled:text-ink-400 dark:disabled:text-ink-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
                           >
                             保存
                           </button>
@@ -350,7 +350,7 @@ export default function Settings() {
                 type="button"
                 onClick={handleCreateTag}
                 disabled={!newName.trim()}
-                className="p-1.5 text-xs text-rattan hover:bg-rattan/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 text-xs text-rattan hover:bg-rattan/10 rounded transition-colors disabled:text-ink-400 dark:disabled:text-ink-300 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               >
                 创建
               </button>
@@ -370,7 +370,7 @@ export default function Settings() {
             <button
               type="button"
               onClick={() => setShowNewTag(true)}
-              className="flex items-center gap-2 text-sm text-ink-500 dark:text-ink-400 hover:text-rattan dark:hover:text-rattan transition-colors"
+              className="flex items-center gap-2 text-sm text-ink-500 dark:text-ink-300 hover:text-rattan dark:hover:text-rattan transition-colors"
             >
               <Plus className="w-4 h-4" strokeWidth={1.5} />
               新建标签
@@ -380,7 +380,7 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-6">
           <h3 className="font-medium text-ink-900 dark:text-ink-100 mb-3">数据管理</h3>
-          <p className="text-ink-500 dark:text-ink-400 text-sm mb-4">
+          <p className="text-ink-500 dark:text-ink-300 text-sm mb-4">
             导出当前所有数据进行备份，或从备份文件恢复数据。
           </p>
           <div className="flex flex-wrap gap-3">
@@ -416,7 +416,7 @@ export default function Settings() {
 
         <div className="bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-6">
           <h3 className="font-medium text-ink-900 dark:text-ink-100 mb-3">关于</h3>
-          <p className="text-ink-500 dark:text-ink-400 text-sm">
+          <p className="text-ink-500 dark:text-ink-300 text-sm">
             <span className="font-serif text-ink-900 dark:text-ink-100">墨集</span> — 墨色纸韵，一站式日程管理工具。
           </p>
         </div>

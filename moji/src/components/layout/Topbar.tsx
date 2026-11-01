@@ -147,7 +147,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
         {/* 搜索：防抖 + 分组结果下拉 */}
         <div className="relative" ref={dropdownRef}>
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300 dark:text-ink-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-300"
             strokeWidth={1.5}
           />
           <input
@@ -177,7 +177,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
               className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-ink-800 rounded-xl shadow-paper-xl dark:shadow-none border border-black/[0.04] dark:border-white/[0.06] max-h-96 overflow-y-auto z-50 animate-scale-in"
             >
               {noResults ? (
-                <div className="p-4 text-center text-ink-400 dark:text-ink-400 text-sm">
+                <div className="p-4 text-center text-ink-400 dark:text-ink-300 text-sm">
                   无搜索结果
                 </div>
               ) : (
@@ -187,7 +187,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
                     if (items.length === 0) return null;
                     return (
                       <div key={type} data-group={type}>
-                        <div className="px-4 py-2 text-xs font-medium tracking-wide text-ink-400 dark:text-ink-400 bg-paper-dark/40 dark:bg-ink-700/40">
+                        <div className="px-4 py-2 text-xs font-medium tracking-wide text-ink-400 dark:text-ink-300 bg-paper-dark/40 dark:bg-ink-700/40">
                           {GROUP_LABELS[type]} ({items.length})
                         </div>
                         {items.map((item) => {
@@ -208,7 +208,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
                               <div className="text-sm font-medium text-ink-900 dark:text-ink-100 line-clamp-1">
                                 {item.title}
                               </div>
-                              <div className="text-xs text-ink-400 dark:text-ink-400 mt-0.5 line-clamp-1">
+                              <div className="text-xs text-ink-400 dark:text-ink-300 mt-0.5 line-clamp-1">
                                 匹配: {MATCH_LABELS[item.matchedField]} · {item.snippet}
                               </div>
                             </button>
@@ -217,7 +217,7 @@ export default function Topbar({ onAddClick }: TopbarProps) {
                       </div>
                     );
                   })}
-                  <div className="border-t border-black/[0.04] dark:border-white/[0.06] px-4 py-2 text-xs text-ink-400 dark:text-ink-400 text-center">
+                  <div className="border-t border-black/[0.04] dark:border-white/[0.06] px-4 py-2 text-xs text-ink-400 dark:text-ink-300 text-center">
                     按 <kbd className="px-1.5 py-0.5 bg-paper-dark dark:bg-ink-700 rounded text-ink-500 dark:text-ink-300 font-mono">Enter</kbd> 查看全部结果
                   </div>
                 </>

@@ -78,7 +78,7 @@ export default function Today() {
           <p className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tabular-nums">
             {todayTodos.length}
           </p>
-          <p className="text-ink-400 dark:text-ink-400 text-sm mt-1">
+          <p className="text-ink-400 dark:text-ink-300 text-sm mt-1">
             {todayTodos.filter(t => t.completed).length} 已完成
           </p>
         </div>
@@ -98,7 +98,7 @@ export default function Today() {
           <p className="text-3xl font-serif font-bold text-ink-900 dark:text-ink-100 tabular-nums">
             {todayEvents.length}
           </p>
-          <p className="text-ink-400 dark:text-ink-400 text-sm mt-1">
+          <p className="text-ink-400 dark:text-ink-300 text-sm mt-1">
             {todayEvents.length > 0 ? '即将开始' : '今日清闲'}
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function Today() {
           <div className="space-y-3">
             {todayTodos.length === 0 ? (
               <div className="bg-white dark:bg-ink-800 rounded-xl shadow-paper dark:shadow-none border border-black/[0.03] dark:border-white/[0.03] p-8 text-center">
-                <p className="text-ink-400 dark:text-ink-400">今日无待办事项</p>
+                <p className="text-ink-400 dark:text-ink-300">今日无待办事项</p>
               </div>
             ) : (
               todayTodos.map((todo, index) => (
@@ -171,7 +171,7 @@ export default function Today() {
                     </button>
 
                     <div className="flex-1">
-                      <h4 className={`font-medium ${todo.completed ? 'text-ink-300 dark:text-ink-500 line-through' : 'text-ink-900 dark:text-ink-100'}`}>
+                      <h4 className={`font-medium ${todo.completed ? 'text-ink-300 line-through' : 'text-ink-900 dark:text-ink-100'}`}>
                         {todo.title}
                       </h4>
                       {todo.description && (
@@ -191,7 +191,7 @@ export default function Today() {
                         </span>
                         <button
                           onClick={() => toggleExpand(todo.id)}
-                          className="flex items-center gap-1 text-xs text-ink-400 dark:text-ink-500 hover:text-ink-600 dark:hover:text-ink-300 transition-colors"
+                          className="flex items-center gap-1 text-xs text-ink-400 dark:text-ink-300 hover:text-ink-600 dark:hover:text-ink-300 transition-colors"
                         >
                           {expandedTodos.has(todo.id) ? (
                             <><ChevronUp className="w-3 h-3" strokeWidth={1.5} />收起</>
@@ -205,24 +205,24 @@ export default function Today() {
                         <div className="mt-3 pt-3 border-t border-paper-dark dark:border-ink-600 animate-fade-in">
                           {todo.description ? (
                             <div>
-                              <p className="text-xs text-ink-400 dark:text-ink-500 mb-1">描述</p>
+                              <p className="text-xs text-ink-400 dark:text-ink-300 mb-1">描述</p>
                               <p className="text-sm text-ink-600 dark:text-ink-300 whitespace-pre-wrap">{todo.description}</p>
                             </div>
                           ) : (
-                            <p className="text-xs text-ink-400 dark:text-ink-500">暂无详细描述</p>
+                            <p className="text-xs text-ink-400 dark:text-ink-300">暂无详细描述</p>
                           )}
                           <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                             <div>
-                              <span className="text-ink-400 dark:text-ink-500">创建时间</span>
+                              <span className="text-ink-400 dark:text-ink-300">创建时间</span>
                               <p className="text-ink-600 dark:text-ink-300 mt-0.5">{format(new Date(todo.createdAt), 'yyyy-MM-dd HH:mm')}</p>
                             </div>
                             <div>
-                              <span className="text-ink-400 dark:text-ink-500">截止日期</span>
+                              <span className="text-ink-400 dark:text-ink-300">截止日期</span>
                               <p className="text-ink-600 dark:text-ink-300 mt-0.5">{todo.dueDate ?? '无'}</p>
                             </div>
                             {todo.completedAt && (
                               <div className="col-span-2">
-                                <span className="text-ink-400 dark:text-ink-500">完成时间</span>
+                                <span className="text-ink-400 dark:text-ink-300">完成时间</span>
                                 <p className="text-success mt-0.5">{format(new Date(todo.completedAt), 'yyyy-MM-dd HH:mm')}</p>
                               </div>
                             )}
@@ -247,7 +247,7 @@ export default function Today() {
           <div className="space-y-3">
             {todayEvents.length === 0 ? (
               <div className="bg-white dark:bg-ink-800 rounded-xl shadow-paper dark:shadow-none border border-black/[0.03] dark:border-white/[0.03] p-8 text-center">
-                <p className="text-ink-400 dark:text-ink-400">今日无日程</p>
+                <p className="text-ink-400 dark:text-ink-300">今日无日程</p>
               </div>
             ) : (
               todayEvents.map((event, index) => (
