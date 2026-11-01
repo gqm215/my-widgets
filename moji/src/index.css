@@ -519,3 +519,23 @@ html.dark .brush-divider {
 .animate-fade-out {
   animation: fade-out 200ms ease-in both;
 }
+
+/* =========================================================
+   桌面小组件窗口（?window=widget）
+   透明无边框窗口需要去掉页面底色，否则圆角外会露出白底
+   ========================================================= */
+html.moji-widget,
+html.moji-widget body,
+html.moji-widget #root {
+  background: transparent;
+}
+
+html.moji-widget body {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 无边框窗口里文本不可选中，避免拖动时误选 */
+html.moji-widget body {
+  user-select: none;
+}

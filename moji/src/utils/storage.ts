@@ -339,6 +339,57 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingState: AppState | null = null;
 const SAVE_DEBOUNCE_MS = 300;
 
+/** 序列化为持久化载荷（localStorage 与桌面数据文件共用同一格式） */
+export function serializeState(state: AppState): string {
+  const payload: PersistedPayload = { version: STORAGE_VERSION, data: state };
+  return JSON.stringify(payload);
+}
+
+/** 落盘后的回调（桌面壳用它把同一份载荷同步到数据文件；Web 下为 null） */
+export type PersistSink = (payload: string) => void;
+
+let persistSink: PersistSink | null = null;
+let persistSuppressed = 0;
+
+/** 注册 / 注销落盘回调 */
+export function setPersistSink(sink: PersistSink | null): void {
+  persistSink = sink;
+}
+
+/**
+ * 在该函数内发生的落盘只写 localStorage，不回调 persistSink。
+ * 用于「应用其他窗口传来的数据」——否则会把刚收到的数据再写回去形成回声。
+ */
+export function runWithoutPersist<T>(fn: () => T): T {
+  persistSuppressed += 1;
+  try {
+    return fn();
+  } finally {
+    persistSuppressed -= 1;
+  }
+}
+
+/**
+ * 应用外部（桌面壳）传入的载荷：
+ * 写入 localStorage 并返回归一化后的状态，**不触发** persistSink。
+ * 载荷非法时返回 null，保持现有数据不变。
+ */
+export function applyExternalPayload(payload: string | null): AppState | null {
+  if (!payload) return null;
+  try {
+    const parsed = JSON.parse(payload);
+    // 兼容旧版本直接存储 AppState 的情况
+    const data = parsed?.data ? parsed.data : parsed;
+    const safe = normalizeState(data);
+    if (!safe) return null;
+    localStorage.setItem(STORAGE_KEY, serializeState(safe));
+    return safe;
+  } catch (error) {
+    console.error('[墨集] 应用外部数据失败：', error);
+    return null;
+  }
+}
+
 /** 立即写出挂起状态（若没有挂起状态则什么也不做） */
 function writePendingState(): void {
   if (saveTimer) {
@@ -350,8 +401,10 @@ function writePendingState(): void {
   const state = pendingState;
   pendingState = null;
   try {
-    const payload: PersistedPayload = { version: STORAGE_VERSION, data: state };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    const payload = serializeState(state);
+    localStorage.setItem(STORAGE_KEY, payload);
+    // 桌面壳：把同一份载荷同步给主进程；Web 下 persistSink 为 null
+    if (persistSuppressed === 0) persistSink?.(payload);
   } catch (error) {
     console.error('Failed to save state:', error);
   }

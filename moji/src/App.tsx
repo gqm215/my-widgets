@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useState, type ReactNode, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, Plus } from "lucide-react";
@@ -115,12 +115,19 @@ export function AppContent() {
   );
 }
 
+/**
+ * 打包后的 Electron 用 file:// 加载页面，History API 在这个 origin 下不可用，
+ * 因此 file:// 下切到 HashRouter；Tauri（http://tauri.localhost）与浏览器继续用 BrowserRouter。
+ */
+const AppRouter =
+  typeof window !== 'undefined' && window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <Router>
+      <AppRouter>
         <AppContent />
-      </Router>
+      </AppRouter>
     </ErrorBoundary>
   );
 }

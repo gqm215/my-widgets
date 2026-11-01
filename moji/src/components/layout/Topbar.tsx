@@ -1,9 +1,10 @@
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, PanelsTopLeft } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store';
 import { searchAll, type SearchResultItem } from '@/utils/search';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { getBridge } from '@/platform/bridge';
 import { cn } from '@/lib/utils';
 
 interface TopbarProps {
@@ -34,6 +35,8 @@ export default function Topbar({ onAddClick }: TopbarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  // 桌面壳（Electron / Tauri）下才有桌面小组件；Web / 测试环境为 null，不渲染入口
+  const bridge = getBridge();
 
   const notes = useAppStore((s) => s.notes);
   const memos = useAppStore((s) => s.memos);
@@ -222,6 +225,19 @@ export default function Topbar({ onAddClick }: TopbarProps) {
             </div>
           )}
         </div>
+
+        {/* 桌面壳：显示 / 隐藏桌面小组件 */}
+        {bridge && (
+          <button
+            type="button"
+            onClick={() => bridge.toggleWidget()}
+            aria-label="桌面小组件"
+            title="显示 / 隐藏桌面小组件"
+            className="p-2 rounded-lg text-ink-500 dark:text-ink-300 hover:text-vermilion hover:bg-paper-dark dark:hover:bg-ink-700 transition-colors duration-200 ease-zen"
+          >
+            <PanelsTopLeft className="w-5 h-5" strokeWidth={1.5} />
+          </button>
+        )}
 
         {/* 新建：接入全局 QuickCreate */}
         <button
