@@ -1,0 +1,68 @@
+name: Release
+
+# 打 tag（如 v1.1.0）触发：先跑质量门禁，再构建 Electron / Tauri 两套产物，挂到 GitHub Release。
+# 仓库里只放源码，编译产物只进 Release。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: 构建桌面产物（Electron + Tauri）
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: moji
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: moji/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 质量门禁（tsc + eslint + vitest 覆盖率门槛）
+        run: npm run verify
+
+      - name: 构建 Electron 便携版
+        run: npm run electron:build
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 缓存 cargo 依赖
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: moji/src-tauri -> target
+
+      - name: 构建 Tauri 单文件
+        run: npm run tauri:build
+
+      - name: 归档构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: moji-desktop-windows
+          if-no-files-found: error
+          path: |
+            moji/release/*.exe
+            moji/src-tauri/target/release/moji.exe
+
+      - name: 发布到 GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            moji/release/*.exe
+            moji/src-tauri/target/release/moji.exe
