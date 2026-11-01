@@ -1,6 +1,6 @@
 [package]
 name = "moji"
-version = "1.1.0"
+version = "1.1.1"
 description = "墨集 —— 本地优先的墨色笔记应用（Tauri v2 桌面壳）"
 authors = ["moji"]
 edition = "2024"
