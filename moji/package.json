@@ -78,7 +78,7 @@
       "icon": "src-tauri/icons/icon.ico"
     },
     "portable": {
-      "artifactName": "墨集-${version}.exe"
+      "artifactName": "moji-${version}-electron.exe"
     },
     "files": [
       "dist/**/*",

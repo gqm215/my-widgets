@@ -49,20 +49,26 @@ jobs:
       - name: 构建 Tauri 单文件
         run: npm run tauri:build
 
+      # GitHub Release 会丢弃文件名里的非 ASCII 字符（例如「墨集-1.1.0.exe」变成「-1.1.0.exe」），
+      # 所以统一改成 ASCII 文件名后再上传。
+      - name: 整理产物文件名
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Copy-Item release/*.exe artifacts/
+          Copy-Item src-tauri/target/release/moji.exe "artifacts/moji-${{ github.ref_name }}-tauri.exe"
+          Get-ChildItem artifacts | Select-Object Name, Length
+
       - name: 归档构建产物
         uses: actions/upload-artifact@v4
         with:
           name: moji-desktop-windows
           if-no-files-found: error
-          path: |
-            moji/release/*.exe
-            moji/src-tauri/target/release/moji.exe
+          path: moji/artifacts/*.exe
 
       - name: 发布到 GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: |
-            moji/release/*.exe
-            moji/src-tauri/target/release/moji.exe
+          files: moji/artifacts/*.exe
