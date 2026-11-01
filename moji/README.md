@@ -50,15 +50,20 @@ npm run check            # 类型检查
 npm run verify           # check + lint + coverage
 npm run electron:dev     # Electron 开发模式
 npm run electron:build   # Electron 便携版
+npm run tauri:dev        # Tauri 开发模式
+npm run tauri:build      # Tauri 单文件（src-tauri/target/release/）
 npm run pack             # Node SEA 单文件：release/墨集.exe
 ```
+
+桌面壳（Electron / Tauri 双壳）的数据同步、小组件窗口与发布流程见 [docs/desktop.md](./docs/desktop.md)。
 
 ## 项目结构
 
 ```
 .
-├── docs/                 # 架构 arch.md、设计规范 design.md、测试规范 testing.md、历史 PRD
-├── electron/             # Electron 主进程（main.cjs）
+├── docs/                 # 架构 arch.md、设计规范 design.md、测试规范 testing.md、桌面壳 desktop.md、历史 PRD
+├── electron/             # Electron 主进程（main.cjs）与 preload 数据桥
+├── src-tauri/            # Tauri 2 外壳（Rust 命令 + 配置 + 图标）
 ├── public/               # favicon、PWA 图标、scenes/ 水墨场景
 ├── scripts/              # 静态服务器（SEA 入口）、SEA 配置与打包步骤
 ├── src/
@@ -71,10 +76,12 @@ npm run pack             # Node SEA 单文件：release/墨集.exe
 │   ├── hooks/            # useTheme、useMediaQuery、useDebouncedValue
 │   ├── lib/              # cn()
 │   ├── pages/            # Today、Notes、Memos、Todos、Events、Calendar、Report、Settings、SearchResults
+│   ├── platform/         # bridge（壳桥接契约）、persistence（数据同步）、tauri（Tauri 适配层）
 │   ├── store/            # Zustand AppStore（CRUD + 级联 + snapshot/replaceAll）
 │   ├── test/             # setup.ts、render.tsx、fixtures.ts
 │   ├── types/            # 类型定义
 │   ├── utils/            # date、calendar、search、report、storage
+│   ├── widget/           # 桌面小组件视图（?window=widget）
 │   ├── App.tsx / main.tsx / index.css
 ├── dist/                 # 构建产物（gitignore）
 └── 配置：vite.config.ts / tsconfig*.json / tailwind.config.js / postcss.config.js / eslint.config.js
@@ -116,6 +123,7 @@ npm run pack             # Node SEA 单文件：release/墨集.exe
 
 ## 设计与文档
 
+- [docs/desktop.md](./docs/desktop.md) — Electron / Tauri 双壳、桥接契约、桌面小组件、发布流程。
 - [docs/design.md](./docs/design.md) — 设计令牌、组件/页面规范、响应式、无障碍、文案规范。
 - [docs/testing.md](./docs/testing.md) — 测试策略、基础设施、场景清单、手工 QA、排障。
 - [docs/arch.md](./docs/arch.md) — 架构、路由、数据流、持久化、打包与扩展指南。
