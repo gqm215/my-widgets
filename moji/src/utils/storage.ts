@@ -76,6 +76,11 @@ const initialData: AppState = {
 
 interface PersistedPayload {
   version: number;
+  /**
+   * 写入时间戳（毫秒）。启动时用它比较 localStorage 与桌面数据文件谁更新，
+   * 避免「上次关闭时文件没写完」导致旧数据覆盖新数据。旧版本载荷没有该字段（按 0 处理）。
+   */
+  savedAt?: number;
   data: AppState;
 }
 
@@ -340,13 +345,37 @@ let pendingState: AppState | null = null;
 const SAVE_DEBOUNCE_MS = 300;
 
 /** 序列化为持久化载荷（localStorage 与桌面数据文件共用同一格式） */
-export function serializeState(state: AppState): string {
-  const payload: PersistedPayload = { version: STORAGE_VERSION, data: state };
+export function serializeState(state: AppState, savedAt: number = Date.now()): string {
+  const payload: PersistedPayload = { version: STORAGE_VERSION, savedAt, data: state };
   return JSON.stringify(payload);
 }
 
-/** 落盘后的回调（桌面壳用它把同一份载荷同步到数据文件；Web 下为 null） */
-export type PersistSink = (payload: string) => void;
+/** 读取载荷里的写入时间戳；解析失败或旧格式返回 0 */
+export function payloadSavedAt(payload: string | null): number {
+  if (!payload) return 0;
+  try {
+    const parsed = JSON.parse(payload);
+    const value = Number(parsed?.savedAt);
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** 读取 localStorage 里的原始载荷（不解析、不写入） */
+export function readLocalPayload(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 落盘后的回调（桌面壳用它把同一份载荷同步到数据文件；Web 下为 null）。
+ * immediate=true 表示这次是「关闭/卸载前的强制落盘」，桌面壳应当用同步写入，避免进程先退出。
+ */
+export type PersistSink = (payload: string, immediate: boolean) => void;
 
 let persistSink: PersistSink | null = null;
 let persistSuppressed = 0;
@@ -382,7 +411,8 @@ export function applyExternalPayload(payload: string | null): AppState | null {
     const data = parsed?.data ? parsed.data : parsed;
     const safe = normalizeState(data);
     if (!safe) return null;
-    localStorage.setItem(STORAGE_KEY, serializeState(safe));
+    // 保留原载荷的时间戳：它代表这份数据的「新旧」，重新打时间戳会让比较失去意义
+    localStorage.setItem(STORAGE_KEY, serializeState(safe, payloadSavedAt(payload) || Date.now()));
     return safe;
   } catch (error) {
     console.error('[墨集] 应用外部数据失败：', error);
@@ -391,7 +421,7 @@ export function applyExternalPayload(payload: string | null): AppState | null {
 }
 
 /** 立即写出挂起状态（若没有挂起状态则什么也不做） */
-function writePendingState(): void {
+function writePendingState(immediate = false): void {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
@@ -404,7 +434,7 @@ function writePendingState(): void {
     const payload = serializeState(state);
     localStorage.setItem(STORAGE_KEY, payload);
     // 桌面壳：把同一份载荷同步给主进程；Web 下 persistSink 为 null
-    if (persistSuppressed === 0) persistSink?.(payload);
+    if (persistSuppressed === 0) persistSink?.(payload, immediate);
   } catch (error) {
     console.error('Failed to save state:', error);
   }
@@ -421,15 +451,18 @@ export function saveState(state: AppState, immediate = false): void {
     saveTimer = null;
   }
   if (immediate) {
-    writePendingState();
+    writePendingState(true);
     return;
   }
-  saveTimer = setTimeout(writePendingState, SAVE_DEBOUNCE_MS);
+  saveTimer = setTimeout(() => writePendingState(false), SAVE_DEBOUNCE_MS);
 }
 
-/** 立即刷新挂起的写入（用于页面卸载 / 切后台前） */
+/**
+ * 立即刷新挂起的写入（用于页面卸载 / 窗口关闭前）。
+ * 走同步路径：桌面壳会在这时用同步 IPC 写文件，保证进程退出前数据已经落盘。
+ */
 export function flushState(): void {
-  writePendingState();
+  writePendingState(true);
 }
 
 /** 导入外部 JSON 数据，返回是否成功 */

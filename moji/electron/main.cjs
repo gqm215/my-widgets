@@ -99,6 +99,15 @@ function createWidgetWindow() {
 
 // —— IPC：本地数据读写（主进程原样存取，不做 JSON 解析）——
 
+/** 把最新载荷广播给所有已打开的窗口（主窗口 ↔ 桌面小组件联动） */
+function broadcastChanged(payload) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('moji:data-changed', payload);
+    }
+  }
+}
+
 // 读取数据文件：不存在或读取异常都返回 null
 ipcMain.handle('moji:load', async () => {
   const file = getDataFile();
@@ -119,10 +128,22 @@ ipcMain.handle('moji:save', async (_event, payload) => {
   await fs.promises.mkdir(path.dirname(file), { recursive: true });
   await fs.promises.writeFile(file, payload, 'utf8');
 
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (!win.isDestroyed()) {
-      win.webContents.send('moji:data-changed', payload);
-    }
+  broadcastChanged(payload);
+});
+
+// 同步保存：渲染进程在 beforeunload / pagehide 时用 sendSync 调用。
+// 关窗后进程会立刻退出，异步 IPC 的写入还没完成就会被丢掉——这是「改完马上关就丢数据」的根因，
+// 所以这里必须用 writeFileSync 并在同一次调用里写完。
+ipcMain.on('moji:save-sync', (event, payload) => {
+  try {
+    const file = getDataFile();
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, payload, 'utf8');
+    broadcastChanged(payload);
+    event.returnValue = true;
+  } catch (error) {
+    console.error('[moji] 同步写入本地数据失败:', error);
+    event.returnValue = false;
   }
 });
 

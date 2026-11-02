@@ -15,8 +15,19 @@ export interface MojiBridge {
   load(): Promise<string | null>;
   /** 保存原始 JSON 文本（调用方已完成 300ms 防抖） */
   save(payload: string): Promise<void>;
+  /**
+   * 同步保存：只在「窗口关闭 / 页面卸载前」调用。
+   * Electron 用 sendSync 实现，保证进程退出前文件已经写完——异步 IPC 会随窗口销毁而丢。
+   * 没有同步能力的壳可以不实现，调用方会退回异步 save。
+   */
+  saveSync?(payload: string): void;
   /** 订阅其他窗口的写入；返回取消订阅函数 */
   onChange(listener: (payload: string | null) => void): () => void;
+  /**
+   * 需要在关窗前先落盘时由壳触发（Tauri 的窗口关闭是原生行为，不一定会执行 beforeunload）。
+   * 回调里应当 flushState() 后再 closeWindow()。返回取消订阅函数。
+   */
+  onFlushRequest?(listener: () => void): () => void;
   /** 关闭当前窗口（桌面小组件的关闭按钮） */
   closeWindow(): void;
   /** 主窗口：显示 / 隐藏桌面小组件窗口 */

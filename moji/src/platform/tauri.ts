@@ -27,6 +27,14 @@ export async function createTauriBridge(): Promise<MojiBridge> {
       await invoke('moji_save', { payload });
     },
 
+    // Tauri 没有同步 invoke；这里再发一次命令，真正的兜底在 Rust 侧：
+    // RunEvent::ExitRequested 会把最后一次收到的载荷同步写盘。
+    saveSync: (payload) => {
+      void invoke('moji_save', { payload }).catch((error) => {
+        console.error('[墨集] 关闭前保存失败：', error);
+      });
+    },
+
     onChange: (listener) => {
       let disposed = false;
       let unlisten: (() => void) | null = null;
@@ -35,6 +43,23 @@ export async function createTauriBridge(): Promise<MojiBridge> {
         listener(event.payload ?? null);
       }).then((fn) => {
         // 事件订阅是异步的，若在此期间已取消，立刻退订
+        if (disposed) fn();
+        else unlisten = fn;
+      });
+
+      return () => {
+        disposed = true;
+        unlisten?.();
+        unlisten = null;
+      };
+    },
+
+    // Rust 侧拦截 CloseRequested → 发这个事件让前端先落盘
+    onFlushRequest: (listener) => {
+      let disposed = false;
+      let unlisten: (() => void) | null = null;
+
+      void listen('moji:flush-before-close', () => listener()).then((fn) => {
         if (disposed) fn();
         else unlisten = fn;
       });

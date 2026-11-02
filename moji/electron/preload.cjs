@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('mojiBridge', {
   // 保存本地数据（原样传字符串，主进程负责落盘并广播变更）
   save: (payload) => ipcRenderer.invoke('moji:save', payload),
 
+  // 同步保存：只在关窗 / 卸载前调用，保证进程退出前数据已写盘
+  saveSync: (payload) => ipcRenderer.sendSync('moji:save-sync', payload),
+
   // 监听数据变更（主进程广播），返回取消监听的函数
   onChange: (cb) => {
     const h = (_e, payload) => cb(payload);
