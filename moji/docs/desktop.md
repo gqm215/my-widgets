@@ -89,11 +89,25 @@ interface MojiBridge {
 
 回归测试见 `src/platform/__tests__/persistence.test.ts` 的「数据持久化可靠性」一组。
 
+### 进一步加固（v1.1.3）
+
+- **原子写**：先写 `moji-data.json.tmp`，把现有主文件留一份 `moji-data.json.bak`，再 `rename` 覆盖。
+  写到一半崩溃 / 断电也不会留下半截 JSON，不会把整个库读坏
+- **自动回退**：启动时主文件缺失或不是合法 JSON 开头 → 读 `.bak` 并把它恢复成主文件
+- **单实例锁**：Electron `requestSingleInstanceLock()` / Tauri `tauri-plugin-single-instance`。
+  重复启动不再开第二个进程——两个实例同时写同一份文件会互相覆盖（这本身也是一种「数据丢失」）
+
+数据在哪（需要手动备份 / 迁移到另一台机器时）：
+
+- Electron：`%APPDATA%\墨集\moji-data.json`（以及 `.bak`）
+- Tauri：`%APPDATA%\com.moji.app\moji-data.json`（以及 `.bak`）
+- 更简单的办法：设置页「导出数据」拿 JSON，换机器后「导入数据」
+
 ## 版本与发布
 
 - **应用版本** = `package.json` 的 `version`；**数据格式版本** = `src/utils/storage.ts` 的 `STORAGE_VERSION`，两者不要混用
 - 语义化版本：MAJOR 破坏性变更（含数据迁移）· MINOR 兼容新功能 · PATCH 修 bug
-- 发布：`git tag v1.1.2 && git push origin v1.1.2` → `.github/workflows/release.yml` 跑质量门禁、构建两套产物并挂到 GitHub Release
+- 发布：`git tag v1.1.3 && git push origin v1.1.3` → `.github/workflows/release.yml` 跑质量门禁、构建两套产物并挂到 GitHub Release
 - 推送 / PR 触发 `.github/workflows/ci.yml`，只跑 `npm run verify`
 
 ## 已知限制
