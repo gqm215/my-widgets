@@ -26,25 +26,57 @@ fn data_file_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join(DATA_FILE))
 }
 
-/// 同步写数据文件（原样落盘，不解析内容）
-fn write_payload(app: &AppHandle, payload: &str) -> Result<(), String> {
-    let path = data_file_path(app)?;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("创建数据目录失败：{e}"))?;
-    }
-    std::fs::write(&path, payload).map_err(|e| format!("写入数据文件失败：{e}"))
+/// 主文件、临时文件、上一版备份的路径
+fn data_file_variants(app: &AppHandle) -> Result<(PathBuf, PathBuf, PathBuf), String> {
+    let file = data_file_path(app)?;
+    let tmp = PathBuf::from(format!("{}.tmp", file.display()));
+    let backup = PathBuf::from(format!("{}.bak", file.display()));
+    Ok((file, tmp, backup))
 }
 
-/// 读取数据文件内容；文件不存在时返回 None
+/// 同步写数据文件（原样落盘，不解析内容）。
+///
+/// 原子写：先写 .tmp，把现有主文件留一份 .bak，再 rename 覆盖。
+/// 这样即使写到一半进程被杀，也不会留下半截 JSON。
+fn write_payload(app: &AppHandle, payload: &str) -> Result<(), String> {
+    let (file, tmp, backup) = data_file_variants(app)?;
+    if let Some(parent) = file.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("创建数据目录失败：{e}"))?;
+    }
+    std::fs::write(&tmp, payload).map_err(|e| format!("写入临时文件失败：{e}"))?;
+    if file.is_file() {
+        if let Err(e) = std::fs::copy(&file, &backup) {
+            eprintln!("备份数据文件失败：{e}");
+        }
+    }
+    std::fs::rename(&tmp, &file).map_err(|e| format!("替换数据文件失败：{e}"))
+}
+
+/// 读取数据文件内容：主文件缺失 / 损坏时回退到 .bak，并把备份恢复成主文件
 #[tauri::command]
 fn moji_load(app: AppHandle) -> Result<Option<String>, String> {
-    let path = data_file_path(&app)?;
-    if !path.is_file() {
-        return Ok(None);
+    let (file, _tmp, backup) = data_file_variants(&app)?;
+    for (candidate, is_backup) in [(&file, false), (&backup, true)] {
+        if !candidate.is_file() {
+            continue;
+        }
+        match std::fs::read_to_string(candidate) {
+            // 只做 JSON 合法性校验，不解析业务字段
+            Ok(content) if serde_json::from_str::<serde_json::Value>(&content).is_ok() => {
+                if is_backup {
+                    if let Err(e) = std::fs::copy(candidate, &file) {
+                        eprintln!("从备份恢复数据文件失败：{e}");
+                    } else {
+                        eprintln!("主数据文件损坏，已从备份恢复");
+                    }
+                }
+                return Ok(Some(content));
+            }
+            Ok(_) => eprintln!("数据文件不是合法 JSON，尝试下一个候选：{}", candidate.display()),
+            Err(e) => eprintln!("读取数据文件失败 {}：{e}", candidate.display()),
+        }
     }
-    std::fs::read_to_string(&path)
-        .map(Some)
-        .map_err(|e| format!("读取数据文件失败：{e}"))
+    Ok(None)
 }
 
 /// 原样写入数据文件（不解析 JSON），写成功后向所有窗口广播 `moji:changed`
@@ -111,6 +143,13 @@ fn moji_toggle_widget(app: AppHandle) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        // 单实例：两个进程同时写同一份数据文件会互相覆盖，第二个实例直接把窗口交还给第一个
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .manage(LatestPayload(Mutex::new(None)))
         .manage(CloseGuard(AtomicBool::new(false)))
         .on_window_event(|window, event| {

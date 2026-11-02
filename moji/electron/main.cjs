@@ -19,6 +19,73 @@ function getDataFile() {
   return path.join(app.getPath('userData'), 'moji-data.json');
 }
 
+/** 数据文件相关路径：主文件、临时文件、上一版备份 */
+function dataFilePaths() {
+  const file = getDataFile();
+  return { file, tmp: `${file}.tmp`, backup: `${file}.bak` };
+}
+
+/**
+ * 原子写入数据文件：
+ * 先写 .tmp，把现有主文件留一份 .bak，再 rename 覆盖。
+ * 这样即使写到一半进程被杀，也不会留下半截 JSON。
+ */
+function writeDataFile(payload) {
+  const { file, tmp, backup } = dataFilePaths();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(tmp, payload, 'utf8');
+  if (fs.existsSync(file)) {
+    try {
+      fs.copyFileSync(file, backup);
+    } catch (error) {
+      console.error('[moji] 备份数据文件失败:', error);
+    }
+  }
+  fs.renameSync(tmp, file);
+}
+
+/** 载荷是否是合法 JSON（读盘时只做校验，不做业务解析） */
+function isJsonPayload(content) {
+  if (typeof content !== 'string' || !content.trim().startsWith('{')) return false;
+  try {
+    JSON.parse(content);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 读取数据文件：主文件缺失 / 损坏时回退到 .bak，并把备份恢复成主文件。
+ * 返回原始字符串（主进程不解析业务字段），都没有则返回 null。
+ */
+function readDataFile() {
+  const { file, backup } = dataFilePaths();
+  for (const candidate of [file, backup]) {
+    try {
+      const content = fs.readFileSync(candidate, 'utf8');
+      if (isJsonPayload(content)) {
+        if (candidate === backup) {
+          try {
+            fs.copyFileSync(backup, file);
+            console.warn('[moji] 主数据文件损坏，已从备份恢复');
+          } catch (error) {
+            console.error('[moji] 从备份恢复数据文件失败:', error);
+          }
+        }
+        return content;
+      }
+      console.error(`[moji] 数据文件不是合法 JSON，尝试下一个候选: ${candidate}`);
+    } catch (error) {
+      // ENOENT 表示文件还不存在（首次启动），属于正常情况
+      if (error.code !== 'ENOENT') {
+        console.error(`[moji] 读取数据文件失败 ${candidate}:`, error);
+      }
+    }
+  }
+  return null;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -108,37 +175,21 @@ function broadcastChanged(payload) {
   }
 }
 
-// 读取数据文件：不存在或读取异常都返回 null
-ipcMain.handle('moji:load', async () => {
-  const file = getDataFile();
-  try {
-    return await fs.promises.readFile(file, 'utf8');
-  } catch (error) {
-    // ENOENT 表示文件还不存在（首次启动），属于正常情况
-    if (error && error.code !== 'ENOENT') {
-      console.error('[moji] 读取本地数据失败:', error);
-    }
-    return null;
-  }
-});
+// 读取数据文件（主文件损坏时回退 .bak）；不存在返回 null
+ipcMain.handle('moji:load', async () => readDataFile());
 
-// 保存数据文件：写完通知所有已打开窗口，实现主窗口与小组件的联动
+// 保存数据文件（原子写 + 备份上一版），写完通知所有已打开窗口，实现主窗口与小组件的联动
 ipcMain.handle('moji:save', async (_event, payload) => {
-  const file = getDataFile();
-  await fs.promises.mkdir(path.dirname(file), { recursive: true });
-  await fs.promises.writeFile(file, payload, 'utf8');
-
+  writeDataFile(payload);
   broadcastChanged(payload);
 });
 
 // 同步保存：渲染进程在 beforeunload / pagehide 时用 sendSync 调用。
 // 关窗后进程会立刻退出，异步 IPC 的写入还没完成就会被丢掉——这是「改完马上关就丢数据」的根因，
-// 所以这里必须用 writeFileSync 并在同一次调用里写完。
+// 所以这里必须同步写完再返回。
 ipcMain.on('moji:save-sync', (event, payload) => {
   try {
-    const file = getDataFile();
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, payload, 'utf8');
+    writeDataFile(payload);
     broadcastChanged(payload);
     event.returnValue = true;
   } catch (error) {
@@ -170,14 +221,29 @@ ipcMain.on('moji:toggle-widget', () => {
   }
 });
 
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
+// 单实例：两个进程同时写同一份数据文件会互相覆盖，第二个实例直接把窗口交还给第一个
+if (!app.requestSingleInstanceLock()) {
   app.quit();
-});
+} else {
+  app.on('second-instance', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createWindow();
+      return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
+  app.whenReady().then(createWindow);
+
+  app.on('window-all-closed', () => {
+    app.quit();
+  });
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+}
