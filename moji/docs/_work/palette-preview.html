@@ -30,17 +30,22 @@
   .c-vermilion { color: #c94043; } .c-rattan { color: #d4a84b; }
   .c-teal { color: #5a9e89; } .c-blue { color: #4a6b8a; }
   .c-lotus { color: #b48a9a; } .c-gray { color: #4a4a4a; }
-  .dark .c-gray { color: #a8a8a8; }
   /* 高亮：亮色纸底用原色淡染；暗色底示意用提亮变体 */
   .hl-vermilion { background: rgba(201,64,67,.20); } .hl-rattan { background: rgba(212,168,75,.28); }
   .hl-teal { background: rgba(90,158,137,.24); } .hl-blue { background: rgba(74,107,138,.26); }
   .hl-lotus { background: rgba(180,138,154,.28); } .hl-gray { background: rgba(74,74,74,.18); }
-  .dark .hl-vermilion { background: #e0767a; color: #1a1a1a; }
-  .dark .hl-rattan { background: #e3c078; color: #1a1a1a; }
+  .dark .hl-vermilion { background: #e85a5d; color: #1a1a1a; }
+  .dark .hl-rattan { background: #f0c86c; color: #1a1a1a; }
   .dark .hl-teal { background: #83bfa9; color: #1a1a1a; }
   .dark .hl-blue { background: #7f9ab5; color: #1a1a1a; }
   .dark .hl-lotus { background: #c9a1b0; color: #1a1a1a; }
-  .dark .hl-gray { background: #9a9a9a; color: #1a1a1a; }
+  .dark .hl-gray { background: #c2c2c2; color: #1a1a1a; }
+  .dark .c-vermilion { color: #e85a5d; }
+  .dark .c-rattan { color: #f0c86c; }
+  .dark .c-teal { color: #83bfa9; }
+  .dark .c-blue { color: #7f9ab5; }
+  .dark .c-lotus { color: #c9a1b0; }
+  .dark .c-gray { color: #c2c2c2; }
   .dot { display: inline-block; width: 13px; height: 13px; border-radius: 50%; margin: 0 4px -1px 0; }
   .note { font-size: 11.5px; opacity: .6; margin-top: 6px; }
 </style>
@@ -62,14 +67,14 @@
 </div>
 
 <div class="row dark">
-  <h2>暗色 · 墨底</h2>
+  <h2>暗色 · 墨底（全部使用 -light 提亮变体；墨灰暗色反转偏白）</h2>
   <div class="swatches">
-    <div class="card"><div class="chip" style="background:#c94043"></div><div class="meta"><div class="name">朱砂 <span class="hex">#c94043</span></div><span class="tag kept">暗色用 -light 变体</span></div></div>
-    <div class="card"><div class="chip" style="background:#d4a84b"></div><div class="meta"><div class="name">藤黄 <span class="hex">#d4a84b</span></div><span class="tag kept">暗色用 -light 变体</span></div></div>
-    <div class="card"><div class="chip" style="background:#5a9e89"></div><div class="meta"><div class="name">青碧 <span class="hex">#5a9e89</span></div><span class="tag new">新增 teal</span></div></div>
-    <div class="card"><div class="chip" style="background:#4a6b8a"></div><div class="meta"><div class="name">黛蓝 <span class="hex">#4a6b8a</span></div><span class="tag new">新增 blue</span></div></div>
-    <div class="card"><div class="chip" style="background:#b48a9a"></div><div class="meta"><div class="name">藕荷 <span class="hex">#b48a9a</span></div><span class="tag new">新增 lotus</span></div></div>
-    <div class="card"><div class="chip" style="background:#4a4a4a"></div><div class="meta"><div class="name">墨灰 <span class="hex">#4a4a4a</span></div><span class="tag kept">暗色提亮展示</span></div></div>
+    <div class="card"><div class="chip" style="background:#e85a5d"></div><div class="meta"><div class="name">朱砂-light <span class="hex">#e85a5d</span></div><span class="tag kept">现有令牌</span></div></div>
+    <div class="card"><div class="chip" style="background:#f0c86c"></div><div class="meta"><div class="name">藤黄-light <span class="hex">#f0c86c</span></div><span class="tag kept">现有令牌</span></div></div>
+    <div class="card"><div class="chip" style="background:#83bfa9"></div><div class="meta"><div class="name">青碧-light <span class="hex">#83bfa9</span></div><span class="tag new">新增 teal-light</span></div></div>
+    <div class="card"><div class="chip" style="background:#7f9ab5"></div><div class="meta"><div class="name">黛蓝-light <span class="hex">#7f9ab5</span></div><span class="tag new">新增 blue-light</span></div></div>
+    <div class="card"><div class="chip" style="background:#c9a1b0"></div><div class="meta"><div class="name">藕荷-light <span class="hex">#c9a1b0</span></div><span class="tag new">新增 lotus-light</span></div></div>
+    <div class="card"><div class="chip" style="background:#c2c2c2"></div><div class="meta"><div class="name">墨灰-light <span class="hex">#c2c2c2</span></div><span class="tag new">暗色反转偏白</span></div></div>
   </div>
 </div>
 

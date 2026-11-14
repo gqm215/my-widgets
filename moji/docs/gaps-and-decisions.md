@@ -109,7 +109,7 @@
 | D9 | 路由要不要 URL 同步？ | `/todos?list=&task=` / 不同步 | **要**，与 `/notes/:id` 先例一致；刷新/分享链接可还原现场；task 选中态用查询参数而非路径 |
 | D10 | 手动拖拽排序一期做吗？ | 做 / 不做 | **不做**，保持现有排序（创建/截止/优先级）；数据模型不预留 sortOrder，避免为用不到的字段付迁移成本 |
 | D11 | 已完成怎么展示？ | 底部折叠分组（滴答式）/ 沿用筛选 | **底部折叠分组**，替代现有「状态筛选」；筛选只保留优先级 |
-| D17 | 清单色板具体色值？ | **已拍板（暂定，2026-11-14 用户确认预览图）** | 朱砂 `#c94043`（vermilion）/ 藤黄 `#d4a84b`（rattan）/ 青碧 `#5a9e89`（teal）/ 黛蓝 `#4a6b8a`（blue）/ 藕荷 `#b48a9a`（lotus）/ 墨灰 `#4a4a4a`（ink-500）。青碧/黛蓝/藕荷入 design.md 令牌表 + tailwind；暗色提亮变体 teal-light `#83bfa9` / blue-light `#7f9ab5` / lotus-light `#c9a1b0`；语义类名统一 `c-vermilion / c-rattan / c-teal / c-blue / c-lotus / c-gray`，笔记高亮/文字色与清单色板同源（预览存档 `docs/_work/palette-preview.png`） |
+| D17 | 清单色板具体色值？ | **已拍板（暂定，2026-11-14；暗色变体经用户反馈补充）** | 亮色六色：朱砂 `#c94043`（vermilion）/ 藤黄 `#d4a84b`（rattan）/ 青碧 `#5a9e89`（teal）/ 黛蓝 `#4a6b8a`（blue）/ 藕荷 `#b48a9a`（lotus）/ 墨灰 `#4a4a4a`（ink-500）。**暗色全部使用 -light 提亮变体**：vermilion-light `#e85a5d`（已有）/ rattan-light `#f0c86c`（已有）/ teal-light `#83bfa9` / blue-light `#7f9ab5` / lotus-light `#c9a1b0` / **gray-light `#c2c2c2`（墨灰暗色反转偏白，用户明确要求：白底偏黑、墨底偏白）**。语义类名统一 `c-vermilion / c-rattan / c-teal / c-blue / c-lotus / c-gray`，笔记高亮/文字色与清单色板同源（预览存档 `docs/_work/palette-preview.png`） |
 | D18 | emoji 图标选择器？ | 全量 emoji 库 / 有限集合 / 不做 | **有限集合**（约 30 个常用），全量 emoji 数据体积不值；也可一期只做空白+色点 |
 | D20 | 旧筛选工具条去留？ | 全删 / 保留优先级筛选 | **保留优先级筛选**（收进列表头部右侧小控件），状态筛选被 D11 取代，排序保留 |
 

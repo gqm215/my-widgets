@@ -31,7 +31,7 @@
 
 ## 3. 决策日志
 
-- **2026-11-14 · D17 暂定拍板（用户真实回复「颜色暂定可用这些」）**：六色 = 朱砂 #c94043 / 藤黄 #d4a84b / 青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a / 墨灰 #4a4a4a；暗色提亮 teal-light #83bfa9 / blue-light #7f9ab5 / lotus-light #c9a1b0；语义类名 c-vermilion/c-rattan/c-teal/c-blue/c-lotus/c-gray。已回写 gaps-and-decisions.md。唯一事实源 = `src/design/palette.ts`（B2-F1 建）。
+- **2026-11-14 · D17 暂定拍板（用户真实回复「颜色暂定可用这些」）+ 暗色补充（用户反馈：墨灰暗色反转偏白、其余色暗色适当提亮）**：亮色六色 = 朱砂 #c94043 / 藤黄 #d4a84b / 青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a / 墨灰 #4a4a4a；暗色 -light 变体全套 = vermilion-light #e85a5d（已有）/ rattan-light #f0c86c（已有）/ teal-light #83bfa9 / blue-light #7f9ab5 / lotus-light #c9a1b0 / gray-light #c2c2c2（偏白反转）；语义类名 c-vermilion/c-rattan/c-teal/c-blue/c-lotus/c-gray。已回写 gaps-and-decisions.md。唯一事实源 = `src/design/palette.ts`（B2-F1 建）。
 - 2026-11-14：初始化。既定决策以 `docs/gaps-and-decisions.md` 为准（D1–D20 倾向视为已确认，用户开工未提异议）。新决策编号从 D21 起追加。
 - 2026-11-14（范围修正，非新决策）：B1-T1 发现 `completed→status`（D3）是类型级破坏变更，波及 11 个源文件 + 6 个测试文件。B1-T1 卡扩为「数据模型 v2 + 消费方最小机械适配」，机械适配仅限编译级修复与 D2 新建默认 `priority:'none'`，不加任何新 UI。
 - 2026-11-14（实现约定）：`updateList` patch 语义 = 显式传 `undefined` 的字段即清空（icon 一期可清，D18「空白+色点」路线需要）。
