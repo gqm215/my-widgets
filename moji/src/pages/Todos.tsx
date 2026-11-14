@@ -19,6 +19,7 @@ const priorityOrder: Record<Priority, number> = {
   high: 0,
   medium: 1,
   low: 2,
+  none: 3,
 };
 
 type StatusFilter = 'all' | 'incomplete' | 'completed';
@@ -29,6 +30,7 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   high: '高优先级',
   medium: '中优先级',
   low: '低优先级',
+  none: '无优先级',
 };
 
 export default function Todos() {
@@ -44,7 +46,7 @@ export default function Todos() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [newTodoDesc, setNewTodoDesc] = useState('');
-  const [newTodoPriority, setNewTodoPriority] = useState<Priority>('medium');
+  const [newTodoPriority, setNewTodoPriority] = useState<Priority>('none');
   const [newTodoDueDate, setNewTodoDueDate] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ export default function Todos() {
   const resetAddForm = () => {
     setNewTodoTitle('');
     setNewTodoDesc('');
-    setNewTodoPriority('medium');
+    setNewTodoPriority('none');
     setNewTodoDueDate('');
     setAddError(null);
   };
@@ -75,7 +77,7 @@ export default function Todos() {
     consumedNewRef.current = true;
     setNewTodoTitle('');
     setNewTodoDesc('');
-    setNewTodoPriority('medium');
+    setNewTodoPriority('none');
     setNewTodoDueDate('');
     setAddError(null);
     setShowAddModal(true);
@@ -109,9 +111,9 @@ export default function Todos() {
     let list = [...todos];
 
     if (statusFilter === 'completed') {
-      list = list.filter((t) => t.completed);
+      list = list.filter((t) => t.status === 'completed');
     } else if (statusFilter === 'incomplete') {
-      list = list.filter((t) => !t.completed);
+      list = list.filter((t) => t.status !== 'completed');
     }
 
     if (priorityFilter !== 'all') {
@@ -137,7 +139,7 @@ export default function Todos() {
     return list;
   }, [todos, statusFilter, priorityFilter, sortBy]);
 
-  const completedCount = todos.filter((t) => t.completed).length;
+  const completedCount = todos.filter((t) => t.status === 'completed').length;
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
@@ -267,7 +269,7 @@ export default function Todos() {
               data-testid={`todo-${todo.id}`}
               className={cn(
                 'todo-item-enter bg-white dark:bg-ink-800 rounded-lg shadow-paper dark:shadow-none p-5 md:p-6 hover:shadow-paper-lg dark:hover:shadow-none transition-shadow duration-200',
-                todo.completed && 'todo-completed',
+                todo.status === 'completed' && 'todo-completed',
               )}
               style={{ animationDelay: `${index * 50}ms` }}
             >
@@ -275,12 +277,12 @@ export default function Todos() {
                 <button
                   type="button"
                   role="checkbox"
-                  aria-checked={todo.completed}
-                  aria-label={`标记「${todo.title}」为${todo.completed ? '未完成' : '已完成'}`}
+                  aria-checked={todo.status === 'completed'}
+                  aria-label={`标记「${todo.title}」为${todo.status === 'completed' ? '未完成' : '已完成'}`}
                   onClick={() => toggleTodo(todo.id)}
                   className={cn(
                     'w-6 h-6 rounded border-2 mt-0.5 flex-shrink-0 transition-colors duration-200 flex items-center justify-center',
-                    todo.completed
+                    todo.status === 'completed'
                       ? 'bg-success border-success'
                       : todo.priority === 'high'
                         ? 'border-vermilion'
@@ -289,14 +291,14 @@ export default function Todos() {
                           : 'border-ink-300 dark:border-ink-600',
                   )}
                 >
-                  {todo.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                  {todo.status === 'completed' && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
                 </button>
 
                 <div className="flex-1 min-w-0">
                   <h3
                     className={cn(
                       'todo-text font-medium transition-all duration-300',
-                      todo.completed
+                      todo.status === 'completed'
                         ? 'text-ink-300 dark:text-ink-600'
                         : 'text-ink-900 dark:text-ink-100',
                     )}
@@ -380,6 +382,7 @@ export default function Todos() {
                 onChange={(e) => setNewTodoPriority(e.target.value as Priority)}
                 className="w-full px-3.5 py-2 rounded-md border bg-white dark:bg-ink-800 text-ink-900 dark:text-ink-100 border-paper-dark dark:border-ink-600 focus:outline-none focus:ring-2 focus:ring-vermilion/15 focus:border-vermilion/60"
               >
+                <option value="none">无优先级</option>
                 <option value="high">高优先级</option>
                 <option value="medium">中优先级</option>
                 <option value="low">低优先级</option>

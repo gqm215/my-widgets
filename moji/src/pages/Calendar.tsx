@@ -145,7 +145,7 @@ export default function CalendarPage() {
     }
     addTodo({
       title: newTodoTitle.trim(),
-      priority: 'medium',
+      priority: 'none',
       dueDate: toDayKey(selectedDay),
     });
     setTodoModalOpen(false);
@@ -480,7 +480,7 @@ function MonthView({
                     key={todo.id}
                     className={cn(
                       'text-xs px-2 py-1 rounded truncate',
-                      todo.completed
+                      todo.status === 'completed'
                         ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 line-through'
                         : todo.priority === 'high'
                           ? 'bg-vermilion/20 text-vermilion'
@@ -594,7 +594,7 @@ function WeekView({
                   key={todo.id}
                   className={cn(
                     'text-[10px] px-1.5 py-0.5 rounded truncate',
-                    todo.completed
+                    todo.status === 'completed'
                       ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 line-through'
                       : todo.priority === 'high'
                         ? 'bg-vermilion/20 text-vermilion'

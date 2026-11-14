@@ -1,4 +1,4 @@
-import type { AppState, Event, Memo, Note, Tag, Todo } from '@/types';
+import type { AppState, Event, List, Memo, Note, Tag, Todo } from '@/types';
 
 const BASE_ISO = '2025-06-02T09:00:00.000Z';
 
@@ -32,7 +32,17 @@ export function makeTodo(overrides: Partial<Todo> = {}): Todo {
     id: nextId('todo'),
     title: '测试待办',
     priority: 'medium',
-    completed: false,
+    status: 'active',
+    createdAt: BASE_ISO,
+    ...overrides,
+  };
+}
+
+export function makeList(overrides: Partial<List> = {}): List {
+  return {
+    id: nextId('list'),
+    name: '测试清单',
+    color: '#c94043',
     createdAt: BASE_ISO,
     ...overrides,
   };
@@ -61,7 +71,7 @@ export function makeTag(overrides: Partial<Tag> = {}): Tag {
 
 /** 空的 AppState（页面测试默认从空数据开始） */
 export function emptyState(): AppState {
-  return { notes: [], memos: [], todos: [], events: [], tags: [] };
+  return { notes: [], memos: [], todos: [], events: [], tags: [], lists: [] };
 }
 
 /** 构造一份完整的 AppState，未提供的集合为空 */

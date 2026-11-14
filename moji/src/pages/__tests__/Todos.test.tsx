@@ -24,7 +24,7 @@ describe('Todos 页面', () => {
   it('渲染待办列表与统计', () => {
     seedStore({
       todos: [
-        makeTodo({ id: 't1', title: '写周报', priority: 'high', completed: true }),
+        makeTodo({ id: 't1', title: '写周报', priority: 'high', status: 'completed' }),
         makeTodo({ id: 't2', title: '买牛奶', priority: 'low' }),
       ],
     });
@@ -78,7 +78,7 @@ describe('Todos 页面', () => {
     expect(checkbox).toHaveAttribute('aria-checked', 'false');
     await user.click(checkbox);
 
-    expect(useAppStore.getState().todos[0].completed).toBe(true);
+    expect(useAppStore.getState().todos[0].status).toBe('completed');
     expect(screen.getByRole('checkbox', { name: '标记「写周报」为未完成' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -88,7 +88,7 @@ describe('Todos 页面', () => {
   it('按状态与优先级筛选', async () => {
     seedStore({
       todos: [
-        makeTodo({ id: 't1', title: '已完成的高优任务', priority: 'high', completed: true }),
+        makeTodo({ id: 't1', title: '已完成的高优任务', priority: 'high', status: 'completed' }),
         makeTodo({ id: 't2', title: '未完成的中优任务', priority: 'medium' }),
       ],
     });

@@ -83,9 +83,9 @@ describe('generateWeeklyReport', () => {
 
   it('正确统计本周完成的待办', () => {
     const todos: Todo[] = [
-      { id: '1', title: 'Done this week', priority: 'high', completed: true, completedAt: createInWeek(0), createdAt: createOutOfWeek(5) },
-      { id: '2', title: 'Done last week', priority: 'medium', completed: true, completedAt: createOutOfWeek(10), createdAt: createOutOfWeek(10) },
-      { id: '3', title: 'Not done', priority: 'low', completed: false, createdAt: createInWeek(0) },
+      { id: '1', title: 'Done this week', priority: 'high', status: 'completed', completedAt: createInWeek(0), createdAt: createOutOfWeek(5) },
+      { id: '2', title: 'Done last week', priority: 'medium', status: 'completed', completedAt: createOutOfWeek(10), createdAt: createOutOfWeek(10) },
+      { id: '3', title: 'Not done', priority: 'low', status: 'active', createdAt: createInWeek(0) },
     ];
     const report = generateWeeklyReport(todos, [], [], []);
     expect(report.stats.completedTodos).toBe(1);
@@ -122,7 +122,7 @@ describe('generateWeeklyReport', () => {
 
   it('模块统计中包含正确的 items 内容', () => {
     const todos: Todo[] = [
-      { id: 't1', title: 'Task A', priority: 'high', completed: true, completedAt: createInWeek(0), createdAt: createOutOfWeek(5) },
+      { id: 't1', title: 'Task A', priority: 'high', status: 'completed', completedAt: createInWeek(0), createdAt: createOutOfWeek(5) },
     ];
     const report = generateWeeklyReport(todos, [], [], []);
     const todoModule = report.modules.find((m) => m.module === 'todo')!;
@@ -281,7 +281,7 @@ describe('generateWeeklyReport 指定周范围', () => {
       { id: 'e2', title: '范围外日程', startDate: inRangeISO(9, 0), isAllDay: false, repeat: 'none', createdAt: inRangeISO(1) },
     ];
     const todos: Todo[] = [
-      { id: 't1', title: '范围内完成', priority: 'high', completed: true, completedAt: inRangeISO(4), createdAt: inRangeISO(1) },
+      { id: 't1', title: '范围内完成', priority: 'high', status: 'completed', completedAt: inRangeISO(4), createdAt: inRangeISO(1) },
     ];
 
     const report = generateWeeklyReport(todos, notes, memos, events, range);
@@ -292,7 +292,7 @@ describe('generateWeeklyReport 指定周范围', () => {
 
   it('非法日期字段被忽略', () => {
     const report = generateWeeklyReport(
-      [{ id: 't1', title: 'x', priority: 'high', completed: true, completedAt: 'bad', createdAt: 'bad' }],
+      [{ id: 't1', title: 'x', priority: 'high', status: 'completed', completedAt: 'bad', createdAt: 'bad' }],
       [{ id: 'n1', title: 'x', content: '', tags: [], isFavorite: false, createdAt: 'bad', updatedAt: 'bad' }],
       [{ id: 'm1', content: 'x', createdAt: 'bad' }],
       [{ id: 'e1', title: 'x', startDate: 'bad', isAllDay: false, repeat: 'none', createdAt: 'bad' }],

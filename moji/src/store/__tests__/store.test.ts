@@ -30,7 +30,7 @@ vi.mock('@/utils/storage', () => {
           id: 't1',
           title: 'Test Todo',
           priority: 'medium' as const,
-          completed: false,
+          status: 'active' as const,
           createdAt: '2025-01-01T00:00:00.000Z',
         },
       ],
@@ -45,6 +45,7 @@ vi.mock('@/utils/storage', () => {
         },
       ],
       tags: [{ id: 'tag1', name: 'test', color: '#000' }],
+      lists: [],
     })),
     saveState: vi.fn(),
   };
@@ -127,8 +128,8 @@ describe('useAppStore', () => {
         const todo = useAppStore.getState().todos.find((t) => t.id === id);
         expect(todo?.title).toBe('Test Memo');
         expect(todo?.description).toBe('Test Memo');
-        expect(todo?.priority).toBe('medium');
-        expect(todo?.completed).toBe(false);
+        expect(todo?.priority).toBe('none');
+        expect(todo?.status).toBe('active');
         // 备忘应该被删除
         const memos = useAppStore.getState().memos;
         expect(memos.some((m) => m.id === 'm1')).toBe(false);
@@ -164,7 +165,7 @@ describe('useAppStore', () => {
       expect(id).toBeTruthy();
       const todos = useAppStore.getState().todos;
       expect(todos.some((t) => t.id === id)).toBe(true);
-      expect(todos.find((t) => t.id === id)?.completed).toBe(false);
+      expect(todos.find((t) => t.id === id)?.status).toBe('active');
       expect(saveState).toHaveBeenCalled();
     });
 
@@ -186,7 +187,7 @@ describe('useAppStore', () => {
       it('toggleTodo 将未完成待办切换为完成，并设置 completedAt', () => {
         useAppStore.getState().toggleTodo('t1');
         const todo = useAppStore.getState().todos.find((t) => t.id === 't1');
-        expect(todo?.completed).toBe(true);
+        expect(todo?.status).toBe('completed');
         expect(todo?.completedAt).toBe('2025-07-09T12:00:00.000Z');
         expect(saveState).toHaveBeenCalled();
       });
@@ -199,7 +200,7 @@ describe('useAppStore', () => {
         // 再切换回未完成
         useAppStore.getState().toggleTodo('t1');
         const todo = useAppStore.getState().todos.find((t) => t.id === 't1');
-        expect(todo?.completed).toBe(false);
+        expect(todo?.status).toBe('active');
         expect(todo?.completedAt).toBeUndefined();
         expect(saveState).toHaveBeenCalled();
       });
@@ -268,6 +269,7 @@ describe('useAppStore', () => {
         todos: [],
         events: [],
         tags: [],
+        lists: [],
       };
       useAppStore.getState().replaceAll(newState);
       const state = useAppStore.getState();
@@ -446,7 +448,7 @@ describe('useAppStore', () => {
             id: 't1',
             title: '待办',
             priority: 'medium',
-            completed: false,
+            status: 'active',
             createdAt: '2025-01-01T00:00:00.000Z',
             ...overrides,
           },
@@ -454,25 +456,25 @@ describe('useAppStore', () => {
       });
     }
 
-    it('completed 由 false 变 true 时补 completedAt', () => {
+    it('status 由 active 变 completed 时补 completedAt', () => {
       seedTodo();
-      useAppStore.getState().updateTodo('t1', { completed: true });
+      useAppStore.getState().updateTodo('t1', { status: 'completed' });
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
-      expect(todo.completed).toBe(true);
+      expect(todo.status).toBe('completed');
       expect(todo.completedAt).toBe('2025-07-09T12:00:00.000Z');
     });
 
-    it('completed 由 true 变 false 时清除 completedAt', () => {
-      seedTodo({ completed: true, completedAt: '2025-01-02T00:00:00.000Z' });
-      useAppStore.getState().updateTodo('t1', { completed: false });
+    it('status 由 completed 变 active 时清除 completedAt', () => {
+      seedTodo({ status: 'completed', completedAt: '2025-01-02T00:00:00.000Z' });
+      useAppStore.getState().updateTodo('t1', { status: 'active' });
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
-      expect(todo.completed).toBe(false);
+      expect(todo.status).toBe('active');
       expect(todo.completedAt).toBeUndefined();
       expect('completedAt' in todo).toBe(false);
     });
 
     it('仅更新标题时保留已有 completedAt', () => {
-      seedTodo({ completed: true, completedAt: '2025-01-02T00:00:00.000Z' });
+      seedTodo({ status: 'completed', completedAt: '2025-01-02T00:00:00.000Z' });
       useAppStore.getState().updateTodo('t1', { title: '新标题' });
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
       expect(todo.title).toBe('新标题');
@@ -482,25 +484,44 @@ describe('useAppStore', () => {
     it('显式传入 completedAt 时尊重传入值', () => {
       seedTodo();
       useAppStore.getState().updateTodo('t1', {
-        completed: true,
+        status: 'completed',
         completedAt: '2025-03-03T03:03:03.000Z',
       });
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
       expect(todo.completedAt).toBe('2025-03-03T03:03:03.000Z');
     });
 
-    it('completed 已为 true 但缺 completedAt 时补齐', () => {
-      seedTodo({ completed: true });
+    it('status 已为 completed 但缺 completedAt 时补齐', () => {
+      seedTodo({ status: 'completed' });
       useAppStore.getState().updateTodo('t1', { title: '补时间' });
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
       expect(todo.completedAt).toBe('2025-07-09T12:00:00.000Z');
     });
 
+    it('status 变为 abandoned 时补 abandonedAt 并清除 completedAt', () => {
+      seedTodo({ status: 'completed', completedAt: '2025-01-02T00:00:00.000Z' });
+      useAppStore.getState().updateTodo('t1', { status: 'abandoned' });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.status).toBe('abandoned');
+      expect(todo.abandonedAt).toBe('2025-07-09T12:00:00.000Z');
+      expect(todo.completedAt).toBeUndefined();
+      expect('completedAt' in todo).toBe(false);
+    });
+
+    it('status 由 abandoned 变 active 时清除 abandonedAt', () => {
+      seedTodo({ status: 'abandoned', abandonedAt: '2025-01-02T00:00:00.000Z' });
+      useAppStore.getState().updateTodo('t1', { status: 'active' });
+      const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
+      expect(todo.status).toBe('active');
+      expect(todo.abandonedAt).toBeUndefined();
+      expect('abandonedAt' in todo).toBe(false);
+    });
+
     it('对不存在的 ID 不抛错也不改变数据', () => {
       seedTodo();
-      expect(() => useAppStore.getState().updateTodo('missing', { completed: true })).not.toThrow();
+      expect(() => useAppStore.getState().updateTodo('missing', { status: 'completed' })).not.toThrow();
       const todo = useAppStore.getState().todos.find((t) => t.id === 't1')!;
-      expect(todo.completed).toBe(false);
+      expect(todo.status).toBe('active');
       expect(todo.completedAt).toBeUndefined();
     });
   });

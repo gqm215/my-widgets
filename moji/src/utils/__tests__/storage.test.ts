@@ -8,6 +8,7 @@ import {
   flushState,
   sanitize,
   normalizeState,
+  serializeState,
 } from '@/utils/storage';
 import { toDayKey } from '@/utils/date';
 
@@ -68,7 +69,7 @@ describe('saveState / loadState', () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
     expect(parsed.data.notes.length).toBeGreaterThan(0);
     vi.useRealTimers();
   });
@@ -213,11 +214,246 @@ describe('loadState 数据迁移', () => {
     expect(state.notes.map((n) => n.id)).toEqual(['ok']);
     expect(state.memos.map((m) => m.id)).toEqual(['m1']);
     const todo = state.todos.find((t) => t.id === 't2')!;
-    expect(todo.priority).toBe('medium');
-    expect(todo.completed).toBe(false);
+    expect(todo.priority).toBe('none');
+    expect(todo.status).toBe('active');
     expect(state.events).toEqual([]);
     expect(state.tags.map((t) => t.id)).toEqual(['tag2']);
     expect(state.tags[0].color).toBe('#8a8a8a');
+  });
+});
+
+describe('v1 → v2 迁移（completed 布尔 → status）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  function v1Payload(todos: Record<string, unknown>[]): string {
+    return JSON.stringify({
+      version: 1,
+      data: { notes: [], memos: [], todos, events: [], tags: [] },
+    });
+  }
+
+  it('completed:true → status:"completed" 且 completedAt 原值保留', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      v1Payload([
+        {
+          id: 't1',
+          title: '已完成',
+          priority: 'low',
+          completed: true,
+          completedAt: '2025-06-03T10:00:00.000Z',
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+      ])
+    );
+    const state = loadState();
+    expect(state.todos[0].status).toBe('completed');
+    expect(state.todos[0].completedAt).toBe('2025-06-03T10:00:00.000Z');
+  });
+
+  it('completed:false → status:"active"，completedAt 不保留', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      v1Payload([
+        {
+          id: 't1',
+          title: '未完成',
+          priority: 'high',
+          completed: false,
+          completedAt: '2025-06-03T10:00:00.000Z',
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+      ])
+    );
+    const state = loadState();
+    expect(state.todos[0].status).toBe('active');
+    expect(state.todos[0].completedAt).toBeUndefined();
+    expect('completedAt' in state.todos[0]).toBe(false);
+  });
+
+  it('priority 原值保留，任务总数不变', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      v1Payload([
+        { id: 't1', title: '高', priority: 'high', completed: true, completedAt: '2025-06-03T10:00:00.000Z', createdAt: '2025-01-01T00:00:00.000Z' },
+        { id: 't2', title: '中', priority: 'medium', completed: false, createdAt: '2025-01-01T00:00:00.000Z' },
+        { id: 't3', title: '低', priority: 'low', completed: false, createdAt: '2025-01-01T00:00:00.000Z' },
+      ])
+    );
+    const state = loadState();
+    expect(state.todos).toHaveLength(3);
+    expect(state.todos.map((t) => t.priority)).toEqual(['high', 'medium', 'low']);
+    expect(state.todos.map((t) => t.status)).toEqual(['completed', 'active', 'active']);
+  });
+
+  it('缺少 completed 字段的旧条目按 active 处理', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      v1Payload([{ id: 't1', title: '无 completed', createdAt: '2025-01-01T00:00:00.000Z' }])
+    );
+    const state = loadState();
+    expect(state.todos[0].status).toBe('active');
+  });
+});
+
+describe('v2 载荷直读', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('status / abandonedAt / listId / parentId 正确读入', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        data: {
+          notes: [],
+          memos: [],
+          todos: [
+            {
+              id: 't1',
+              title: '已放弃',
+              priority: 'none',
+              status: 'abandoned',
+              abandonedAt: '2025-06-04T08:00:00.000Z',
+              listId: 'list-1',
+              parentId: 'p1',
+              createdAt: '2025-01-01T00:00:00.000Z',
+            },
+          ],
+          events: [],
+          tags: [],
+          lists: [{ id: 'list-1', name: '工作', color: '#c94043', createdAt: '2025-01-01T00:00:00.000Z' }],
+        },
+      })
+    );
+    const state = loadState();
+    const todo = state.todos[0];
+    expect(todo.status).toBe('abandoned');
+    expect(todo.abandonedAt).toBe('2025-06-04T08:00:00.000Z');
+    expect(todo.listId).toBe('list-1');
+    expect(todo.parentId).toBe('p1');
+    expect(todo.priority).toBe('none');
+    expect(state.lists[0]).toEqual({
+      id: 'list-1',
+      name: '工作',
+      color: '#c94043',
+      createdAt: '2025-01-01T00:00:00.000Z',
+    });
+  });
+
+  it('非法 status 回落 active；非 abandoned 状态不保留 abandonedAt', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        data: {
+          notes: [],
+          memos: [],
+          todos: [
+            { id: 't1', title: '坏状态', status: 'bogus', abandonedAt: '2025-06-04T08:00:00.000Z', createdAt: '2025-01-01T00:00:00.000Z' },
+            { id: 't2', title: ' active 带放弃时间', status: 'active', abandonedAt: '2025-06-04T08:00:00.000Z', createdAt: '2025-01-01T00:00:00.000Z' },
+          ],
+          events: [],
+          tags: [],
+          lists: [],
+        },
+      })
+    );
+    const state = loadState();
+    expect(state.todos[0].status).toBe('active');
+    expect(state.todos[0].abandonedAt).toBeUndefined();
+    expect(state.todos[1].abandonedAt).toBeUndefined();
+  });
+
+  it('listId / parentId 仅接受非空字符串，否则删除', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        data: {
+          notes: [],
+          memos: [],
+          todos: [
+            { id: 't1', title: 'T', status: 'active', listId: '  ', parentId: 42, createdAt: '2025-01-01T00:00:00.000Z' },
+          ],
+          events: [],
+          tags: [],
+          lists: [],
+        },
+      })
+    );
+    const state = loadState();
+    expect(state.todos[0].listId).toBeUndefined();
+    expect(state.todos[0].parentId).toBeUndefined();
+  });
+});
+
+describe('迁移往返（v1 → normalizeState → serializeState → 再读入）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('往返后数据等价（任务数、字段一致）', () => {
+    const v1Data = {
+      notes: [],
+      memos: [],
+      todos: [
+        {
+          id: 't1',
+          title: '已完成',
+          priority: 'low',
+          completed: true,
+          completedAt: '2025-06-03T10:00:00.000Z',
+          dueDate: '2025-06-01T10:00:00.000Z',
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+        {
+          id: 't2',
+          title: '未完成',
+          priority: 'high',
+          completed: false,
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+      ],
+      events: [],
+      tags: [],
+    };
+
+    const first = normalizeState(v1Data)!;
+    // 迁移本身正确：completed 布尔 → status，dueDate → 日键
+    expect(first.todos).toHaveLength(2);
+    expect(first.todos[0].status).toBe('completed');
+    expect(first.todos[0].completedAt).toBe('2025-06-03T10:00:00.000Z');
+    expect(first.todos[0].dueDate).toBe(toDayKey('2025-06-01T10:00:00.000Z'));
+    expect(first.todos[1].status).toBe('active');
+
+    // 序列化为 v2 载荷后再读入，应完全等价
+    localStorage.setItem(STORAGE_KEY, serializeState(first, 1234));
+    const second = loadState();
+    expect(second).toEqual(first);
+  });
+});
+
+describe('initialData 含 lists', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('loadState 空存储时返回含示例清单的初始数据', () => {
+    const state = loadState();
+    expect(state.lists.length).toBeGreaterThan(0);
+    expect(state.lists[0].name).toBeTruthy();
+    expect(state.lists[0].color).toMatch(/^#/);
+    expect(state.lists[0].createdAt).toBeTruthy();
+  });
+
+  it('初始示例任务挂在示例清单下', () => {
+    const state = loadState();
+    const list = state.lists[0];
+    expect(state.todos.some((t) => t.listId === list.id)).toBe(true);
   });
 });
 
@@ -326,7 +562,7 @@ describe('flushState', () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw!);
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
     expect(parsed.data.notes.length).toBe(state.notes.length);
     vi.useRealTimers();
   });
@@ -462,19 +698,76 @@ describe('sanitize', () => {
     })!;
     expect(result.notes[0]).toMatchObject({ content: '', tags: [], isFavorite: false });
     expect(result.memos[0].content).toBe('');
-    expect(result.todos[0]).toMatchObject({ priority: 'medium', completed: false });
+    expect(result.todos[0]).toMatchObject({ priority: 'none', status: 'active' });
     expect(result.events[0]).toMatchObject({ repeat: 'none', isAllDay: false });
     expect(result.tags[0].color).toBe('#8a8a8a');
   });
 
-  it('非法 priority / repeat 回落到默认值', () => {
+  it('非法 priority / repeat 回落到默认值（priority 默认 none）', () => {
     const result = sanitize({
       notes: [],
       todos: [{ id: 't1', title: 'T', priority: 'urgent' }],
       events: [{ id: 'e1', title: 'E', startDate: '2025-06-01T10:00:00.000Z', repeat: 'yearly' }],
     })!;
-    expect(result.todos[0].priority).toBe('medium');
+    expect(result.todos[0].priority).toBe('none');
     expect(result.events[0].repeat).toBe('none');
+  });
+});
+
+describe('List sanitize', () => {
+  it('缺 id / name 的清单被拒绝，非法条目剔除', () => {
+    const result = sanitize({
+      notes: [],
+      todos: [],
+      lists: [{ id: 'l1' }, { name: '无 id' }, null, 42, []],
+    })!;
+    expect(result.lists).toEqual([]);
+  });
+
+  it('合法清单保留，icon / folderId 可选字段保留', () => {
+    const result = sanitize({
+      notes: [],
+      todos: [],
+      lists: [
+        {
+          id: 'l1',
+          name: '工作',
+          color: '#c94043',
+          icon: 'briefcase',
+          folderId: 'folder-1',
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+      ],
+    })!;
+    expect(result.lists).toEqual([
+      {
+        id: 'l1',
+        name: '工作',
+        color: '#c94043',
+        icon: 'briefcase',
+        folderId: 'folder-1',
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('color 缺省补默认值，createdAt 非法时容错补当前时间', () => {
+    const result = sanitize({
+      notes: [],
+      todos: [],
+      lists: [{ id: 'l1', name: '清单', createdAt: 'not-a-date' }],
+    })!;
+    expect(result.lists[0].color).toBe('#8a8a8a');
+    expect(result.lists[0].createdAt).toBeTruthy();
+    expect(result.lists[0].icon).toBeUndefined();
+    expect(result.lists[0].folderId).toBeUndefined();
+  });
+
+  it('lists 缺失或非数组时补空数组', () => {
+    const result = sanitize({ notes: [], todos: [], lists: 'x' } as unknown)!;
+    expect(result.lists).toEqual([]);
+    const result2 = sanitize({ notes: [], todos: [] })!;
+    expect(result2.lists).toEqual([]);
   });
 });
 

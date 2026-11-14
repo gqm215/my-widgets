@@ -1,6 +1,6 @@
 
 import { create } from 'zustand';
-import { AppState, Note, Memo, Todo, Event, Tag } from '@/types';
+import { AppState, Note, Memo, Todo, Event, Tag, Priority } from '@/types';
 import { loadState, saveState, generateId, nowISO } from '@/utils/storage';
 
 export interface AppStore extends AppState {
@@ -12,7 +12,11 @@ export interface AppStore extends AppState {
   updateMemo: (id: string, content: string) => void;
   deleteMemo: (id: string) => void;
   memoToTodo: (id: string) => string | null;
-  addTodo: (todo: Omit<Todo, 'id' | 'createdAt' | 'completed' | 'completedAt'>) => string;
+  addTodo: (
+    todo: Omit<Todo, 'id' | 'createdAt' | 'priority' | 'status' | 'completedAt' | 'abandonedAt'> & {
+      priority?: Priority;
+    }
+  ) => string;
   updateTodo: (id: string, todo: Partial<Todo>) => void;
   deleteTodo: (id: string) => void;
   toggleTodo: (id: string) => void;
@@ -39,6 +43,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       todos: merged.todos,
       events: merged.events,
       tags: merged.tags,
+      lists: merged.lists,
     };
     saveState(persistData);
     set(next);
@@ -98,8 +103,8 @@ export const useAppStore = create<AppStore>((set, get) => {
           memo.content.substring(0, 50) +
           (memo.content.length > 50 ? '...' : ''),
         description: memo.content,
-        priority: 'medium',
-        completed: false,
+        priority: 'none',
+        status: 'active',
         createdAt: nowISO(),
       };
       commit({
@@ -113,7 +118,13 @@ export const useAppStore = create<AppStore>((set, get) => {
       const id = generateId();
       commit({
         todos: [
-          { ...todo, id, completed: false, createdAt: nowISO() },
+          {
+            ...todo,
+            id,
+            priority: todo.priority ?? 'none',
+            status: 'active',
+            createdAt: nowISO(),
+          },
           ...get().todos,
         ],
       });
@@ -125,21 +136,34 @@ export const useAppStore = create<AppStore>((set, get) => {
         todos: get().todos.map((t) => {
           if (t.id !== id) return t;
 
-          // 维护 completedAt 不变量：completed=true ⇔ completedAt 存在
+          // 维护时间戳不变量：
+          // status==='completed' ⇔ completedAt 存在；status==='abandoned' ⇔ abandonedAt 存在
           const hasCompletedAtPatch = Object.prototype.hasOwnProperty.call(
             todo,
             'completedAt'
           );
-          const completed = todo.completed ?? t.completed;
+          const hasAbandonedAtPatch = Object.prototype.hasOwnProperty.call(
+            todo,
+            'abandonedAt'
+          );
+          const status = todo.status ?? t.status;
           let completedAt = hasCompletedAtPatch ? todo.completedAt : t.completedAt;
-          if (completed && !completedAt) completedAt = nowISO();
-          if (!completed) completedAt = undefined;
+          let abandonedAt = hasAbandonedAtPatch ? todo.abandonedAt : t.abandonedAt;
+          if (status === 'completed' && !completedAt) completedAt = nowISO();
+          if (status !== 'completed') completedAt = undefined;
+          if (status === 'abandoned' && !abandonedAt) abandonedAt = nowISO();
+          if (status !== 'abandoned') abandonedAt = undefined;
 
-          const next: Todo = { ...t, ...todo, completed };
+          const next: Todo = { ...t, ...todo, status };
           if (completedAt === undefined) {
             delete next.completedAt;
           } else {
             next.completedAt = completedAt;
+          }
+          if (abandonedAt === undefined) {
+            delete next.abandonedAt;
+          } else {
+            next.abandonedAt = abandonedAt;
           }
           return next;
         }),
@@ -151,10 +175,10 @@ export const useAppStore = create<AppStore>((set, get) => {
       commit({
         todos: get().todos.map((t) => {
           if (t.id !== id) return t;
-          const nowCompleted = !t.completed;
+          const nowCompleted = t.status !== 'completed';
           return {
             ...t,
-            completed: nowCompleted,
+            status: nowCompleted ? 'completed' : 'active',
             completedAt: nowCompleted ? nowISO() : undefined,
           };
         }),
@@ -217,13 +241,14 @@ export const useAppStore = create<AppStore>((set, get) => {
     },
 
     snapshot: (): AppState => {
-      const { notes, memos, todos, events, tags } = get();
+      const { notes, memos, todos, events, tags, lists } = get();
       return {
         notes: [...notes],
         memos: [...memos],
         todos: [...todos],
         events: [...events],
         tags: [...tags],
+        lists: [...lists],
       };
     },
 
@@ -235,6 +260,7 @@ export const useAppStore = create<AppStore>((set, get) => {
         todos: next.todos,
         events: next.events,
         tags: next.tags,
+        lists: next.lists,
       });
     },
   };

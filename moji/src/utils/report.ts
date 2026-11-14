@@ -79,9 +79,9 @@ export function generateWeeklyReport(
   events: Event[],
   range: WeekRange = getWeekRange(0)
 ): WeeklyReport {
-  // 本周完成的待办
+  // 本周完成的待办（status==='completed' 计数；abandoned 天然不计）
   const completedTodos = todos.filter(
-    (t) => t.completed && isInRange(t.completedAt, range)
+    (t) => t.status === 'completed' && isInRange(t.completedAt, range)
   );
 
   // 本周新增笔记

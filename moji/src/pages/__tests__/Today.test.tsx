@@ -44,7 +44,7 @@ describe('Today 页面', () => {
   it('渲染今日概览与今日事项', () => {
     seedStore({
       todos: [
-        makeTodo({ id: 't1', title: '写今日总结', dueDate: todayKey, completed: true }),
+        makeTodo({ id: 't1', title: '写今日总结', dueDate: todayKey, status: 'completed' }),
         makeTodo({ id: 't2', title: '明日再说', dueDate: yesterdayKey }),
       ],
       events: [
@@ -87,7 +87,7 @@ describe('Today 页面', () => {
     expect(checkbox).toHaveAttribute('aria-checked', 'false');
     await user.click(checkbox);
 
-    expect(useAppStore.getState().todos[0].completed).toBe(true);
+    expect(useAppStore.getState().todos[0].status).toBe('completed');
     await waitFor(() => {
       expect(screen.getByRole('checkbox', { name: '标记「写今日总结」为未完成' })).toHaveAttribute(
         'aria-checked',
