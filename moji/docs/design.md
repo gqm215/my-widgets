@@ -184,6 +184,11 @@
 - 描述渲染链与笔记页一致（共享 MarkdownView，见 4.12）；空白描述视为无描述（移除字段）。
 - 删除按钮触发页面级确认；放弃/恢复仅顶层任务提供（store 对子任务 no-op）。
 
+暗色要点：
+- 清单栏与抽屉背景 `ink-800`；分隔线 `paper-dark` → `ink-700`；抽屉阴影以描边替代（`dark:shadow-none`）。
+- 选中态 `ring-vermilion/50` 与逾期/高优的 vermilion 在暗色下直接复用令牌（对比度由令牌保证）；中优藤黄沿用 `rattan`。
+- 详情 Markdown 代码块 `paper-dark` → `ink-700`、代码块底 `black`；折叠分组分隔线同步 `dark:border-ink-700/70`；无色名 `mark` 高亮底同步 `ink-700`。
+
 ### 4.12 共享 Markdown 渲染（MarkdownView，笔记预览与待办描述共用）
 
 渲染链（B3-T1a/T1b）：`react-markdown + remark-gfm + remark-math / rehype-katex`，整体经 React.lazy 拆独立 chunk（katex 字体走本地 assets，离线零外部请求）；不启用 rehype-raw、不引入 rehype-sanitize，HTML 白名单为自研轻量 rehype 插件。
@@ -200,10 +205,14 @@ HTML 白名单（仅笔记内容，不改存储）：
 - 除 `class` 外不解析任何属性（`style` / `onerror` / `href` / `src` 等 URL 属性不进入输出，`javascript:` 协议无从注入）；白名单外类名剥除，未知标签剥标签保文本，`script` / `style` / `iframe` / `svg` 等危险标签连同内容整体剥除，标签名统一小写（大小写混淆防护）。
 - `c-*` 样式：文字色亮色用 hex、暗色用 `darkHex`（`{key}-light` 令牌），CSS 类自适应（`index.css` 内 `@apply` 消费 tailwind 同值令牌）；无类名裸 `mark` 走默认高亮底。
 
-暗色要点：
-- 清单栏与抽屉背景 `ink-800`；分隔线 `paper-dark` → `ink-700`；抽屉阴影以描边替代（`dark:shadow-none`）。
-- 选中态 `ring-vermilion/50` 与逾期/高优的 vermilion 在暗色下直接复用令牌（对比度由令牌保证）；中优藤黄沿用 `rattan`。
-- 详情 Markdown 代码块 `paper-dark` → `ink-700`、代码块底 `black`；折叠分组分隔线同步 `dark:border-ink-700/70`；无色名 `mark` 高亮底同步 `ink-700`。
+编辑器工具条（B3-T2，笔记编辑与待办描述编辑态共用 `EditorToolbar`）：
+- 按钮集与插入语法：加粗 `**文字**`、斜体 `__文字__`、高亮 `==文字==`、六色高亮 `<mark class="c-*">…</mark>`（palette 六色）、无序列表 `- `、待办列表 `- [ ] `、行内公式 `$文字$`、块级公式 `$$⏎…⏎$$`；按钮为图标 + `aria-label` + title 语法提示。
+- 插入语义：选中文字 → 包裹且选区保持在内容上；无选中 → 插入完整语法对、光标落在两段之间；包裹类重复触发（选区外侧已是同款语法对）→ 解除包裹；行前缀类行首已有时幂等不重复。插入即走调用方既有防抖保存链，预览（本节渲染链）自动反映；存储仍为源码 Markdown 原文。
+- 快捷键：`Ctrl+B` 加粗、`Ctrl+Shift+H` 高亮，监听在目标 textarea 上（仅编辑态生效，preventDefault），应用内无既有快捷键冲突。
+- 选中浮现：textarea 有选中文本时工具条高亮可用态（`data-has-selection` + 弱底色）；无选中保持可用——「无选中插入语法对、光标居中」是主流程，不作禁用态。
+- 颜色面板：色点底色取 palette hex，当前色 `aria-pressed`；选择后保持展开（便于连续插多色），Esc / 外点关闭、触发按钮 toggle（交互模式对齐清单改色面板）。
+- 暗色适配：工具条 hover 底与选中浮现底用 `paper-dark` / `ink-700` 令牌；六色按钮即本节 `c-*` 体系（暗色 `darkHex`）。
+- 产物约束：工具条随页面 chunk 加载并抽为共享异步 chunk，不进首屏主包。
 
 ## 5. 页面规范
 

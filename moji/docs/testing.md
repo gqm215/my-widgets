@@ -134,6 +134,16 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 - [ ] PWA：`npm run build && npm run serve` 后离线刷新可打开；安装提示与「发现新版本」提示不遮挡操作。
 - [ ] 打包（非门禁，按需）：`npm run electron:build` / `npm run pack` 能生成可运行产物。
 
+### 7.1 B3 批次手工 QA 增补（笔记增强：公式 / 高亮 / 工具条）
+
+- [ ] 离线：断网打开笔记与待办详情，`$…$` / `$$…$$` 公式与 KaTeX 字体渲染正常（DevTools Network 无外部请求）。
+- [ ] 交叉：同页混用「清单改色 × 笔记公式 × `==高亮==` / 六色」，互不干扰。
+- [ ] 一致性：同一段内容分别贴入 Notes 预览与待办详情预览，渲染结果一致。
+- [ ] 窄屏：双抽屉开合顺畅；编辑器工具条在 375 宽度下可达、可点、换行不遮挡。
+- [ ] 暗色：六色文字 / 六色高亮可辨识，无色名 `==高亮==` 墨底可读，墨灰反转（白底偏黑、墨底偏白）观感自然。
+- [ ] 快捷键：Ctrl+B / Ctrl+Shift+H 在笔记与待办描述编辑态均生效，且不影响全局既有快捷键。
+- [ ] 白名单安全：粘贴含 `<script>` / `onerror` / `style` / 非白名单类名的笔记内容，渲染被剥离、原文存储不变。
+
 ## 8. 常见问题排查
 
 | 现象 | 处理 |
@@ -169,3 +179,16 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 | 列表区（TaskList/TaskRow） | 同上 | 内联回车连续创建（收集箱无 listId、清单视图归属当前清单、空标题不落库）；逾期红组置顶；已完成/已放弃折叠分组默认收起与展开；勾选完成/勾回；放弃任务进入折叠分组；优先级筛选（含无优档）与筛空空态；三种排序（优先级序/截止沉底）；进行中全隐藏空态；行内优先级小旗（高/中优 + sr-only 文本）与日期图标纯展示 |
 | 详情（TaskDetail） | `src/components/todos/__tests__/TaskDetail.test.tsx` + 页面接线 | 标题 blur/Enter/Esc/空标题；截止日期写入/清空；优先级 4 档；描述编辑/预览双态（GFM/全要素渲染/清空移除字段/失焦保存）；子任务增删勾；放弃/恢复/标记为进行中；子任务受限展示；提醒占位；页面级删除确认与 Toast |
 | prefs（D8） | `src/pages/__tests__/Todos.test.tsx` | `hiddenCompleted` 开关立即生效并写 `moji-ui-prefs`；重挂载从 localStorage 还原 |
+
+## 11. 批次用例清单 · B3 笔记增强（2026-11）
+
+> B3 三个交付（共享 Markdown 渲染、`==高亮==` 与六色白名单、编辑器工具条）的用例落点对照。批次收尾后新增行为仍按第 6 节规则补测。
+
+| 行为域 | 用例落点 | 覆盖内容 |
+|---|---|---|
+| 共享 Markdown 渲染（公式） | `src/components/markdown/__tests__/MarkdownView.test.tsx`（7 例） | 行内 `$…$` / 块级 `$$…$$` 渲染 KaTeX 且定界符消失；孤立 `$` 字面保留；无公式内容回归（与改造前逐字一致、两档位类名锁定）；Notes / TaskDetail 两处用法冒烟 |
+| `==高亮==` 与六色白名单 | `src/components/markdown/__tests__/HighlightWhitelist.test.tsx`（50 例） | 高亮 15 正反例（最小配对 / `===` `====` 字面 / 空格不配对 / 代码块免疫）；跨节点补配对（`==$公式$==`、包裹行内代码、多对）；KaTeX 共存互不吞并；六色 mark / span 类名逐一渲染；混合类名剥除与去重；XSS 全套（script 段内/块级、大小写混淆、onerror、style、iframe、svg、注释/CDATA/PI/DOCTYPE、未闭合、游离闭合）；`javascript:` 协议剥离（原始标签 4 变体 + Markdown 链接 2 变体 + https 回归）；index.css ↔ palette.ts 一致性守卫 |
+| 语法插入纯函数 | `src/components/markdown/__tests__/insertSyntax.test.ts`（22 例） | 包裹（选区保持内容上）/ 无选中插入对光标居中 / 重复触发解除（往返对称）；六色类名取自 palette、非法键与未知动作防御；行前缀幂等；块级公式包裹与解除 |
+| 编辑器工具条 | `src/components/markdown/__tests__/EditorToolbar.test.tsx`（19 例） | 8 按钮插入与选区落点；重复触发解除；行前缀幂等不唤醒保存链；颜色面板（展开 / aria-pressed / 色点 hex / 保持展开 / Esc / 外点 / toggle）；快捷键 Ctrl+B、Ctrl+Shift+H（含大小写）与无冲突；选中浮现 `data-has-selection`；空 ref 防御 |
+| 两处接线与预览同步 | `EditorToolbar.test.tsx` 接线冒烟 + `src/pages/__tests__/Notes.test.tsx` + `src/components/todos/__tests__/TaskDetail.test.tsx` | Notes 编辑器工具条 → 插入高亮/六色 → 防抖保存 → 预览出现 `mark`（含 `c-teal` 类）；TaskDetail 编辑态工具条在场、预览态隐藏且渲染 `mark`；描述原文存取不变形 |
+| 存储原文保真（B3 前提） | `src/utils/__tests__/storage.test.ts`（58 例回归） | 公式 / 高亮 / 白名单只解释于渲染层：语法以原文进存储、导出/搜索/同步零改动；v1→v2 迁移与 sanitize 回归保持绿 |
