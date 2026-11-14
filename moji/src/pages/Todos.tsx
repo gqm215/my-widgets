@@ -15,7 +15,12 @@ import { toDayKey } from '@/utils/date';
 import { ListRail } from '@/components/todos/ListRail';
 import { TaskDetail } from '@/components/todos/TaskDetail';
 import { TaskList, type PriorityFilter, type SortBy } from '@/components/todos/TaskList';
-import { isSmartViewKey, resolveViewKeyFromParam, resolveViewParam } from '@/components/todos/viewKeys';
+import {
+  isSmartViewKey,
+  resolveSelectedTaskId,
+  resolveViewKeyFromParam,
+  resolveViewParam,
+} from '@/components/todos/viewKeys';
 import type { Todo } from '@/types';
 
 const PRIORITY_FILTER_OPTIONS: [PriorityFilter, string][] = [
@@ -35,11 +40,22 @@ const SORT_OPTIONS: [SortBy, string][] = [
 const selectCls =
   'px-2.5 py-1.5 rounded-md border bg-white dark:bg-ink-800 text-sm text-ink-700 dark:text-ink-200 border-paper-dark dark:border-ink-600 focus:outline-none focus:ring-2 focus:ring-vermilion/15 focus:border-vermilion/60';
 
+/** 视图成员资格（供 viewTodos 与「切换视图是否保留选中」判定共用） */
+function todosInView(key: string, list: Todo[], today: string): Todo[] {
+  if (key === 'inbox') return filterInbox(list);
+  if (key === 'today') return filterToday(list, today);
+  if (key === 'next7') return filterNext7Days(list, today);
+  return filterByList(list, key);
+}
+
 /**
- * 待办页三栏重构（B2-T1）：
+ * 待办页三栏重构（B2-T1 骨架 + B2-T2 详情与 ?task= 同步）：
  * - 宽屏（≥1024px，D19）：清单栏（w-56）+ 列表区（flex-1）+ 详情栏（w-80，选中时渲染）
  * - 窄屏：清单栏 / 详情栏为 overlay 抽屉（点遮罩关闭），默认收起
- * - 路由同步 ?list=（D9）；视图偏好 moji-ui-prefs（D8）
+ * - 路由同步 ?list= 与 ?task=（D9）：task 选中态以 URL 为事实源——
+ *   点行写参/再点清参、详情关闭清参、任务删除或指向子任务时 replace 清参、
+ *   切换视图时选中任务不属于新视图则清参
+ * - 视图偏好 moji-ui-prefs（D8）
  * - 旧状态筛选条移除（D11 折叠分组替代），旧新建弹窗移除（内联添加替代，D20 保留优先级筛选）
  */
 export default function Todos() {
@@ -59,7 +75,6 @@ export default function Todos() {
   );
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
   const [sortBy, setSortBy] = useState<SortBy>('createdAt');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Todo | null>(null);
   const [railDrawerOpen, setRailDrawerOpen] = useState(false);
   const consumedNewRef = useRef(false);
@@ -69,12 +84,10 @@ export default function Todos() {
   const isListView = !isSmartViewKey(viewKey);
   const activeList = isListView ? lists.find((l) => l.id === viewKey) : undefined;
 
-  const viewTodos = useMemo(() => {
-    if (viewKey === 'inbox') return filterInbox(todos);
-    if (viewKey === 'today') return filterToday(todos, today);
-    if (viewKey === 'next7') return filterNext7Days(todos, today);
-    return filterByList(todos, viewKey);
-  }, [todos, viewKey, today]);
+  const viewTodos = useMemo(
+    () => todosInView(viewKey, todos, today),
+    [viewKey, todos, today]
+  );
 
   const filteredTodos = useMemo(
     () =>
@@ -121,30 +134,75 @@ export default function Todos() {
     }
   }, [listIds, viewKey]);
 
-  // 选中任务被删除时清除选中态
+  // ---------- 选中态（D9）：?task= 为事实源，state 不再保存 ----------
+  // 可选中 = 存在的顶层任务；缺失/已删除/子任务 → 无选中（resolveSelectedTaskId 裁决）
+  const taskParam = searchParams.get('task');
+  const selectedTaskId = useMemo(
+    () => resolveSelectedTaskId(taskParam, todos),
+    [taskParam, todos]
+  );
   const selectedTask = useMemo(
-    () => todos.find((t) => t.id === selectedTaskId) ?? null,
+    () => (selectedTaskId ? (todos.find((t) => t.id === selectedTaskId) ?? null) : null),
     [todos, selectedTaskId]
   );
+  // 详情子任务列表（D4 仅一层；按创建先后展示）
+  const selectedSubtasks = useMemo(() => {
+    if (!selectedTaskId) return [];
+    return todos
+      .filter((t) => t.parentId === selectedTaskId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [todos, selectedTaskId]);
+
+  // ?task= 指向不存在/不可选中的任务（已删除、子任务、空白）→ replace 清参；
+  // ?list= 同步 effect 会在后续渲染补写 list 参数，最终 URL 自洽
   useEffect(() => {
-    if (selectedTaskId && !selectedTask) {
-      setSelectedTaskId(null);
-    }
-  }, [selectedTask, selectedTaskId]);
+    if (taskParam === null || selectedTaskId !== null) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('task');
+    setSearchParams(params, { replace: true });
+  }, [taskParam, selectedTaskId, searchParams, setSearchParams]);
 
   // 切到宽屏时收起窄屏抽屉
   useEffect(() => {
     if (isLg) setRailDrawerOpen(false);
   }, [isLg]);
 
+  /** 清除选中：删掉 ?task= 参数（选中态随参数消失） */
+  const clearSelectedTask = () => {
+    const params = new URLSearchParams(searchParams);
+    if (!params.has('task')) return;
+    params.delete('task');
+    setSearchParams(params, { replace: true });
+  };
+
   const handleSelectView = (key: string) => {
     setViewKey(key);
-    setSelectedTaskId(null);
     setRailDrawerOpen(false);
   };
 
+  // 切换视图（D9）：选中任务不属于新视图 → 清选中与参数；属于则保留（还原现场）。
+  // 裁决放 effect 而非点击 handler：?list= 同步 effect 与本清理都从最新 searchParams
+  // 派生写参，避免 handler 里的旧闭包副本把刚删的 task 参数又带回来
+  const prevViewKeyRef = useRef(viewKey);
+  useEffect(() => {
+    if (prevViewKeyRef.current === viewKey) return;
+    prevViewKeyRef.current = viewKey;
+    if (selectedTaskId && !viewTodos.some((t) => t.id === selectedTaskId)) {
+      const params = new URLSearchParams(searchParams);
+      params.delete('task');
+      setSearchParams(params, { replace: true });
+    }
+  });
+
+  // 点行选中 / 再点取消：写/清 ?task= 参数
   const handleSelectTask = (id: string) => {
-    setSelectedTaskId((prev) => (prev === id ? null : id));
+    const params = new URLSearchParams(searchParams);
+    if (params.get('task') === id) {
+      params.delete('task');
+    } else {
+      params.set('task', id);
+    }
+    setSearchParams(params, { replace: true });
   };
 
   const handleCreateTodo = (title: string) => {
@@ -287,13 +345,17 @@ export default function Todos() {
         </div>
       </section>
 
-      {/* 宽屏：详情栏仅在选中任务时渲染 */}
+      {/* 宽屏：详情栏仅在选中任务时渲染（B2-T2 完整详情） */}
       {isLg && selectedTask && (
         <aside
           aria-label="任务详情"
           className="w-80 shrink-0 h-full overflow-hidden border-l border-paper-dark/60 dark:border-ink-700/60"
         >
-          <TaskDetail todo={selectedTask} />
+          <TaskDetail
+            todo={selectedTask}
+            subtasks={selectedSubtasks}
+            onDelete={setDeleteTarget}
+          />
         </aside>
       )}
 
@@ -315,20 +377,25 @@ export default function Todos() {
         </div>
       )}
 
-      {/* 窄屏：详情抽屉 + 遮罩 */}
+      {/* 窄屏：详情抽屉 + 遮罩（关闭 = 清 ?task= 参数） */}
       {!isLg && selectedTask && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="任务详情"
           className="fixed inset-0 z-40 flex justify-end bg-ink-900/40 dark:bg-black/60 backdrop-blur-sm animate-fade-in"
-          onClick={() => setSelectedTaskId(null)}
+          onClick={clearSelectedTask}
         >
           <div
             className="h-full w-80 max-w-full bg-white dark:bg-ink-800 shadow-paper-xl dark:shadow-none animate-drawer-in-right overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <TaskDetail todo={selectedTask} onClose={() => setSelectedTaskId(null)} />
+            <TaskDetail
+              todo={selectedTask}
+              subtasks={selectedSubtasks}
+              onClose={clearSelectedTask}
+              onDelete={setDeleteTarget}
+            />
           </div>
         </div>
       )}
