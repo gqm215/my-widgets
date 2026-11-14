@@ -22,7 +22,7 @@
 | B2-T2 | 详情面板 + ?task= 同步 +编辑全能力（标题/日期/描述/子任务/优先级/放弃/删除） | **已完成** @ c227e72 | Worker-2 | TaskDetail、viewKeys、Todos.tsx 接线；4 项未决已裁定 |
 | B2-T3 | 测试补齐 + design/testing 文档同步 + 批次提交 | **已完成** @ 2dbf357 | Worker-3 | pages/components 测试、design/testing 文档、两项打磨 |
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
-| B2-F1 | 清单改色选择器 + 六色板令牌落地（palette.ts/tailwind/design.md） | **进行中** | Worker-5 | src/design/palette.ts、ListRail.tsx、tailwind.config、index.css、design.md 令牌节 |
+| B2-F1 | 清单改色选择器 + 六色板令牌落地（palette.ts/tailwind/design.md） | **待提交**（已交回，等 B3-T1a 合入后统一门禁） | Worker-5 + 主控对齐 | src/design/palette.ts、ListRail.tsx、tailwind.config、design.md 令牌节 |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
@@ -48,9 +48,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-14 · B2-T2（Worker-2，已验收 @ c227e72）：详情面板 + ?task= URL 事实源 + 编辑全能力；TaskDetail 覆盖率 100%；全仓 590 例，All 90.09/86.88/88.62/91.84。裁定：子任务不可选中（D4）；MarkdownView 抽取延后至 B3-T1（避免 B2 扩 scope）；编辑出视图保留选中（URL 事实源）。
-- 2026-11-14 · B2-T3（Worker-3，已验收 @ 2dbf357）：测试 590→606 例；design.md §4.11 待办三栏 + testing.md B2 对照表；两项打磨落地；覆盖率 All 90.58/87.67/88.88/92.27。裁定：选中清单由 URL 承载（D9 一致，prefs 仅 hiddenCompleted）。**B2 批次 DoD 达成**（除 B2-F1 改色，待 D17）。
-- 2026-11-14 · B2-T1（Worker-1，已验收 @ 2e6ed08）：三栏骨架+清单栏+列表区+路由/prefs；Todos.tsx 94.49/95.06/92.30/94.50；全仓 552 例。D19 断点 lg=1024px；智能视图不提供内联添加（归属不明，?new=1 聚焦缺口留待后续）。
+- 2026-11-15 · B2-F1（Worker-5，已交回待提交）：palette.ts 六色唯一事实源（darkHex 全覆盖）+ tailwind 7 令牌 + ListRail 新建选色/改色面板 + design.md §2.1/§4.11；622 例全绿，All 90.99/87.83/90.01/92.73。主控裁定并已改：store addList 缺省色对齐 DEFAULT_LIST_COLOR #4a4a4a（sanitize #8a8a8a 保留为数据修复兜底）。观察：Worker-4 曾在仓库根建 .moji-b3base 临时目录、用后自清。
+- 2026-11-15 · B3-T1a（Worker-4）在途：package.json/Notes/TaskDetail/components/markdown 进行中，中途红绿波动属并行正常；其文件与 B2-F1 零交叉。
+- 2026-11-14 · B2-T3（Worker-3，已验收 @ 2dbf357）：测试 590→606 例；design.md §4.11 + testing.md B2 对照表；**B2 批次 DoD 达成**（B2-F1 补齐待提交）。裁定：选中清单由 URL 承载（D9）。
 
 - 2026-11-14 · B1-T4（主控）：批次收尾。arch.md §6/§7 + README 数据模型表同步 v2；build 绿。覆盖率演进至 88.82/84.65/86.24/90.70。B1 DoD 达成。
 - 2026-11-14 · B1-T3（Worker-2，已验收）：todoFilters 纯函数 5 个（3c21eb3），新文件覆盖率 100/100/100/100；月末/年末/闰日边界与非法日键防御用例齐备。卡面「空串 parentId」表述矛盾由 Worker 按 `!t.parentId` 裁决——正确（sanitize 层已剥空串），接受。
