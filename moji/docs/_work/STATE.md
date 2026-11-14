@@ -5,9 +5,9 @@
 
 ## 1. 当前阶段
 
-- 批次：**B3 笔记增强 · 全部完成**。**最低可发布集 B0–B3 已全部达成**，仅剩 B7 发布（QA → 版本定稿 → 等用户确认打 tag）
-- 分支：`feat/v2`（**每卡验收后推送 origin/feat/v2**；远程 github.com/gqm215/my-widgets）
-- 目标版本：2.0.0；最低可发布集 B0+B1+B2+B3+B7
+- 批次：**v2.0.0 已发布** 🎉——feat/v2 已合入 main（816ecf5）、tag `v2.0.0` 已推送、GitHub Actions Release 构建中（verify → Electron/Tauri 产物 → GitHub Release）。发布后进入阶段三迭代（修复卡 F1–F3 + 新批次拆卡）
+- 分支：`main`（HEAD 816ecf5 = tag v2.0.0；feat/v2 同步在 96793bd）
+- 目标版本：2.0.0 ✅（下版本规划：B4–B6 + 修复卡，需先过 D12/D13/D14/D16 决策）
 
 ## 2. 任务板
 
@@ -45,6 +45,7 @@
 
 ## 4. 阶段记录与阻塞
 
+- **发布收尾事项**：CI Release（tag v2.0.0）in_progress → 完成后核对 GitHub Release 产物（Electron 便携 exe + Tauri exe）与 Release 说明；回滚预案 = revert 单卡提交后重打 tag。用户首启生产应用时数据自动迁移 v1→v2（备份在 `D:\Lab\墨集-backups\2026-11-14-v1.1.3\`）。
 - **发布后修复卡（待建）**：F1 dev Electron userData 与生产隔离（main.cjs dev 模式 app.setName('墨集-dev')）；F2 package.json 补 concurrently devDependency；F3 CI release.yml 产物冒烟自动化。均不影响本次发布产物。
 
 - **远程同步策略（用户指示 2026-11-14）**：每张卡验收提交后即 `git push origin feat/v2`，保持远端更新。期间发现 HEAD 曾被切回 main（提交零丢失，已切回 feat/v2；原因未明，可能为本地工具或人为操作）——切分支保持为 Worker 禁令，主控每轮晨读时核对 `git branch --show-current`。
