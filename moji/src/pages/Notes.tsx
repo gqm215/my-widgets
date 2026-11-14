@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ConfirmDialog, Textarea, EmptyState } from '@/components/ui';
 import MarkdownView from '@/components/markdown/MarkdownView';
+import EditorToolbar from '@/components/markdown/EditorToolbar';
 import { cn } from '@/lib/utils';
 import type { Note } from '@/types';
 
@@ -73,6 +74,8 @@ export default function Notes() {
 
   // ---- 虚拟滚动状态 ----
   const listContainerRef = useRef<HTMLDivElement>(null);
+  /** 笔记内容 textarea：工具条向其插语法（B3-T2） */
+  const contentRef = useRef<HTMLTextAreaElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
   const rafRef = useRef(0);
@@ -500,7 +503,14 @@ export default function Notes() {
 
             <div className="flex-1 flex flex-col md:flex-row min-h-0">
               <div className="w-full md:w-1/2 flex flex-col p-4 md:border-r border-paper-dark dark:border-ink-700 min-h-0">
+                {/* B3-T2：编辑器工具条——向 textarea 插语法，onChange 走既有防抖保存链 */}
+                <EditorToolbar
+                  textareaRef={contentRef}
+                  onChangeText={setEditingContent}
+                  label="笔记编辑工具条"
+                />
                 <Textarea
+                  ref={contentRef}
                   aria-label="笔记内容"
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}

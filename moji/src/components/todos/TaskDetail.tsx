@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Ban, Bell, CalendarDays, Check, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { Input, Textarea } from '@/components/ui';
 import MarkdownView from '@/components/markdown/MarkdownView';
+import EditorToolbar from '@/components/markdown/EditorToolbar';
 import { cn } from '@/lib/utils';
 import type { Priority, Todo } from '@/types';
 
@@ -76,6 +77,8 @@ export function TaskDetail({ todo, subtasks, onClose, onDelete }: TaskDetailProp
     todo.description ? 'preview' : 'edit'
   );
   const [descDraft, setDescDraft] = useState(todo.description ?? '');
+  /** 描述 textarea：编辑态工具条向其插语法（B3-T2） */
+  const descRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     setDescMode(todo.description ? 'preview' : 'edit');
     setDescDraft(todo.description ?? '');
@@ -235,14 +238,23 @@ export function TaskDetail({ todo, subtasks, onClose, onDelete }: TaskDetailProp
             </div>
           </div>
           {descMode === 'edit' ? (
-            <Textarea
-              aria-label="任务描述"
-              value={descDraft}
-              onChange={(e) => setDescDraft(e.target.value)}
-              onBlur={commitDescription}
-              placeholder="添加描述，支持 Markdown 语法…"
-              className="min-h-24 text-sm"
-            />
+            <>
+              {/* B3-T2：描述编辑态工具条（与笔记页同一组件），onChange 走既有 blur/防抖链 */}
+              <EditorToolbar
+                textareaRef={descRef}
+                onChangeText={setDescDraft}
+                label="描述编辑工具条"
+              />
+              <Textarea
+                ref={descRef}
+                aria-label="任务描述"
+                value={descDraft}
+                onChange={(e) => setDescDraft(e.target.value)}
+                onBlur={commitDescription}
+                placeholder="添加描述，支持 Markdown 语法…"
+                className="min-h-24 text-sm"
+              />
+            </>
           ) : (
             <div
               aria-label="描述预览"
