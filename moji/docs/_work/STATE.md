@@ -24,7 +24,8 @@
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
 | B2-F1 | 清单改色选择器 + 六色板令牌落地 | **已完成** @ 096cbc5 | Worker-5 + 主控对齐 | src/design/palette.ts、ListRail.tsx、tailwind.config、design.md |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **已完成** @ 504b77f | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
-| B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | **进行中** | Worker-6 | MarkdownView(Impl)、index.css、design.md |
+| B3-T1b | 高亮 ==text== + 6 色白名单渲染 | **已完成** @ d899cd2 | Worker-6 | MarkdownViewImpl、index.css、design.md §4.12 |
+| B3-T2 | 编辑器工具条 + 快捷键（Notes + TaskDetail 描述编辑态） | **进行中** | Worker-6 接力 | components/markdown/EditorToolbar、insertSyntax、Notes.tsx、TaskDetail.tsx |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
@@ -55,9 +56,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-15 · B3-T1a（Worker-4，已验收 @ 504b77f）：MarkdownView(lazy 壳, variant note/detail) + MarkdownViewImpl(KaTeX 本地字体/懒加载)；公式 chunk 280.71kB 独立、主包 0 katex、dist 无外部字体 URL；variant 双映射裁定接受（零行为变化优先）。$ 成对配对跨中文文本为 remark-math 固有语义，已测锁定。
-- 2026-11-15 · B2-F1（Worker-5，已验收 @ 096cbc5）：palette.ts + tailwind 7 令牌 + ListRail 改色；主控对齐 store addList 缺省色 #4a4a4a。合并树 622 例全绿，All 90.99/87.83/90.01/92.73。
-- 2026-11-15 · B3-T1b 已派 Worker-6：==高亮== + 6 色白名单渲染（卡文件 cards/B3-T1b.md + XSS 用例要求）。
+- 2026-11-15 · B3-T1b（Worker-6，已验收 @ d899cd2）：==高亮== remark 插件 + raw HTML 白名单 rehype 插件（自研零依赖；仅 mark/span + 6 类名，URL 属性不解析 → javascript: 无从注入；危险标签连兄弟内容剥除）；50 用例含 XSS 全套/协议 6 变体/KaTeX 共存；覆盖率 All **91.56/88.48/90.28/93.19**，markdown 100×4。保守口径裁定：跨节点 == 补配对须与前文紧邻，带空格形态保持字面（已测锁定，B7 QA 如有真实需求再议）。已知问题：全量并行 Notes.test 5s 超时偶发（复跑绿），T2 顺手修。
+- 2026-11-15 · B3-T2 已派 Worker-6 接力：EditorToolbar + insertSyntax 纯函数 + Notes/TaskDetail 接线 + 快捷键；覆盖率下限 91.56/88.48/90.28/93.19。
+- 2026-11-15 · B3-T1a（Worker-4，已验收 @ 504b77f）：公式 chunk 280.71kB 独立懒加载、主包 0 katex；variant 双映射裁定接受。
 
 - 2026-11-14 · B1-T4（主控）：批次收尾。arch.md §6/§7 + README 数据模型表同步 v2；build 绿。覆盖率演进至 88.82/84.65/86.24/90.70。B1 DoD 达成。
 - 2026-11-14 · B1-T3（Worker-2，已验收）：todoFilters 纯函数 5 个（3c21eb3），新文件覆盖率 100/100/100/100；月末/年末/闰日边界与非法日键防御用例齐备。卡面「空串 parentId」表述矛盾由 Worker 按 `!t.parentId` 裁决——正确（sanitize 层已剥空串），接受。
