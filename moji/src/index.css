@@ -139,6 +139,32 @@ html.dark .markdown-body pre { background-color: #111; color: #ddd; }
 html.dark .markdown-body blockquote { color: #b0b0b0; border-left-color: #4a4a4a; }
 html.dark .markdown-body a { color: #f0c86c; }
 
+/* ===== 笔记高亮与六色渲染（B3-T1b）=====
+   ==文字== → 无色名 <mark>：亮色 paper-accent 底 / 暗色 ink-700 底（D17 暗色补充）。
+   <mark class="c-*"> / <span class="c-*"> → 六色文字色：亮色 hex / 暗色 darkHex。
+   类名白名单唯一事实源为 src/design/palette.ts（MarkdownViewImpl import 消费），
+   此处样式取 tailwind 同名令牌（与 palette.ts 同值，palette.test.ts 有同步守卫）。 */
+.markdown-body mark {
+  @apply bg-paper-accent rounded-sm px-0.5;
+  color: inherit;
+}
+html.dark .markdown-body mark {
+  @apply bg-ink-700;
+}
+.markdown-body .c-vermilion { @apply text-vermilion; }
+.markdown-body .c-rattan { @apply text-rattan; }
+.markdown-body .c-teal { @apply text-teal; }
+.markdown-body .c-blue { @apply text-blue; }
+.markdown-body .c-lotus { @apply text-lotus; }
+/* 墨灰 = ink-500（D17 同值），不用裸 gray 令牌以免覆盖 tailwind 默认 gray 色阶 */
+.markdown-body .c-gray { @apply text-ink-500; }
+html.dark .markdown-body .c-vermilion { @apply text-vermilion-light; }
+html.dark .markdown-body .c-rattan { @apply text-rattan-light; }
+html.dark .markdown-body .c-teal { @apply text-teal-light; }
+html.dark .markdown-body .c-blue { @apply text-blue-light; }
+html.dark .markdown-body .c-lotus { @apply text-lotus-light; }
+html.dark .markdown-body .c-gray { @apply text-gray-light; }
+
 /* Transitions */
 .fade-enter {
   opacity: 0;

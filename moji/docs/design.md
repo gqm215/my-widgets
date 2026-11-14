@@ -181,13 +181,29 @@
 
 详情面板（TaskDetail）：
 - 结构：标题（常驻 input，blur/Enter 提交、Esc 还原、空标题不提交）→ 截止日期（原生 date input，清空移除字段）→ 提醒占位（禁用态，B5 接调度）→ 优先级 4 档（radiogroup）→ 描述（Markdown 编辑/预览显式双态，D6）→ 子任务（增删勾，D4 仅一层）→ 底部放弃/恢复/删除。
-- 描述渲染链与笔记页一致（react-markdown + remark-gfm），不启用 rehype-raw；空白描述视为无描述（移除字段）。
+- 描述渲染链与笔记页一致（共享 MarkdownView，见 4.12）；空白描述视为无描述（移除字段）。
 - 删除按钮触发页面级确认；放弃/恢复仅顶层任务提供（store 对子任务 no-op）。
+
+### 4.12 共享 Markdown 渲染（MarkdownView，笔记预览与待办描述共用）
+
+渲染链（B3-T1a/T1b）：`react-markdown + remark-gfm + remark-math / rehype-katex`，整体经 React.lazy 拆独立 chunk（katex 字体走本地 assets，离线零外部请求）；不启用 rehype-raw、不引入 rehype-sanitize，HTML 白名单为自研轻量 rehype 插件。
+
+公式：`$行内$` / `$$块级$$`，存储原文，导出/搜索/同步零改动。
+
+==高亮==（D17 笔记增强项）：
+- `==文字==` → 无色名 `<mark>`：亮色 `paper-accent` 底 / 暗色 `ink-700` 底，文字色继承正文。
+- 仅在文本节点内配对；定界符为「恰好两个等号」，`===` / `====` / 定界符内侧带空格（`== 重点 ==`）一律字面；`code`/`inlineCode`/math 等语义节点内不误伤。
+- 公式共存：`==$公式$==`、`<mark class="c-*">…$公式$…</mark>` 等混合结构二者各自渲染、互不吞并（remark-math 为解析期扩展，跨节点配对通道负责补齐这类切分）。
+
+HTML 白名单（仅笔记内容，不改存储）：
+- 仅放行 `mark` / `span` 两个标签 + palette.ts 的 6 个语义类名（`c-vermilion / c-rattan / c-teal / c-blue / c-lotus / c-gray`，唯一事实源 `src/design/palette.ts`，渲染层 import 消费不硬编码）。
+- 除 `class` 外不解析任何属性（`style` / `onerror` / `href` / `src` 等 URL 属性不进入输出，`javascript:` 协议无从注入）；白名单外类名剥除，未知标签剥标签保文本，`script` / `style` / `iframe` / `svg` 等危险标签连同内容整体剥除，标签名统一小写（大小写混淆防护）。
+- `c-*` 样式：文字色亮色用 hex、暗色用 `darkHex`（`{key}-light` 令牌），CSS 类自适应（`index.css` 内 `@apply` 消费 tailwind 同值令牌）；无类名裸 `mark` 走默认高亮底。
 
 暗色要点：
 - 清单栏与抽屉背景 `ink-800`；分隔线 `paper-dark` → `ink-700`；抽屉阴影以描边替代（`dark:shadow-none`）。
 - 选中态 `ring-vermilion/50` 与逾期/高优的 vermilion 在暗色下直接复用令牌（对比度由令牌保证）；中优藤黄沿用 `rattan`。
-- 详情 Markdown 代码块 `paper-dark` → `ink-700`、代码块底 `black`；折叠分组分隔线同步 `dark:border-ink-700/70`。
+- 详情 Markdown 代码块 `paper-dark` → `ink-700`、代码块底 `black`；折叠分组分隔线同步 `dark:border-ink-700/70`；无色名 `mark` 高亮底同步 `ink-700`。
 
 ## 5. 页面规范
 
