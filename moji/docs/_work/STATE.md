@@ -14,7 +14,7 @@
 | ID | 目标 | 状态 | 认领 | 文件范围 |
 |---|---|---|---|---|
 | B0-T1 | 建分支、备份数据、跑 verify/build 记录基线 | **已完成** | 主控 | 无代码改动 |
-| B1-T1 | List 实体 + Todo v2 扩展 + storage v2 迁移 + 全仓 `completed→status` 机械适配 | **进行中** | Worker-1 | types/index.ts、utils/storage.ts(+test)、test/fixtures.ts；机械适配见 §5 |
+| B1-T1 | List 实体 + Todo v2 扩展 + storage v2 迁移 + 全仓 `completed→status` 机械适配 | **已完成** @ a35ad52 | Worker-1 | types/index.ts、utils/storage.ts(+test)、test/fixtures.ts；机械适配 18 文件 |
 | B1-T2 | store：List CRUD、abandon/restore、子任务级联、moveTodoToList | 待领（依赖 B1-T1） | — | store/index.ts(+test) |
 | B1-T3 | 智能过滤纯函数（今天/最近7天/收集箱/逾期）+ 边界测试 | 待领（依赖 B1-T1） | — | utils/todoFilters.ts(+test) |
 | B1-T4 | 迁移往返测试 + arch/README 数据模型节同步 | 待领（依赖 B1-T1/T2） | — | storage/store 测试、docs |
@@ -34,9 +34,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-14 · B0-T1（主控）：分支 `feat/v2` 已建；数据备份 `D:\Lab\墨集-backups\2026-11-14-v1.1.3\`（moji-data.json/.backup/.bak，v1 真实数据 3.2KB）；verify 基线全绿——覆盖率 All **88.03/82.72/85.59/90.17**（语句/分支/函数/行），store 100/93.33/100/100，utils 97.07/93.42/100/98.85，storage.ts 95.6/92.61/100/97.7，pages 80.97/73.04/79.81/83.05；build 基线绿（14.6s，precache 41 entries）。**后续覆盖率只升不降。**
-- 2026-11-14：计划文档（release-plan/workflow/gaps/dida365/backlog）+ STATE 入库 feat/v2。
-- 2026-11-14：B1-T1 已派 Worker-1（任务卡全文见派发记录；验收 = npm run verify 全绿且覆盖率 ≥ 基线）。
+- 2026-11-14 · B1-T1（Worker-1，已验收）：数据模型 v2 落地（a35ad52）。List/Todo v2/storage v2 迁移（版本无关，sanitizeTodo 内 completed→status）+ 全仓机械适配 18 文件；store 双不变量（completedAt⇔completed、abandonedAt⇔abandoned）；覆盖率 All **88.27/83.25/85.64/90.31** ≥ 基线。边角记录：toggleTodo 对 abandoned 任务会直接翻为 completed，B1-T2 落 abandon/restore 后由 UI 收敛。
+- 2026-11-14 · B0-T1（主控）：分支 `feat/v2` 已建；数据备份 `D:\Lab\墨集-backups\2026-11-14-v1.1.3\`（moji-data.json/.backup/.bak，v1 真实数据 3.2KB）；verify/build 基线全绿，覆盖率基线 All **88.03/82.72/85.59/90.17**。**后续覆盖率只升不降。**
+- 2026-11-14：计划文档（release-plan/workflow/gaps/dida365/backlog）+ STATE 入库 feat/v2（37e5693）。
 
 ## 6. 基线锚点（只读参考）
 
