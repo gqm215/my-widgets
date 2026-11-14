@@ -5,8 +5,8 @@
 
 ## 1. 当前阶段
 
-- 批次：**B2 待办三栏重构 · 核心已完成（B2-F1 改色选择器待 D17）**；管线阻塞于用户决策（D17/D12/D13/D14/D16）
-- 分支：`feat/v2`（HEAD 90f791c，**已推送 origin/feat/v2**；远程 github.com/gqm215/my-widgets）
+- 批次：**B3 笔记增强 · T1a 公式渲染进行中**（B2 核心已完成；用户已确认推进按计划：2.0.0 = B0–B3+B7）
+- 分支：`feat/v2`（**每卡验收后推送 origin/feat/v2**；远程 github.com/gqm215/my-widgets）
 - 目标版本：2.0.0；最低可发布集 B0+B1+B2+B3+B7
 
 ## 2. 任务板
@@ -23,6 +23,9 @@
 | B2-T3 | 测试补齐 + design/testing 文档同步 + 批次提交 | **已完成** @ 2dbf357 | Worker-3 | pages/components 测试、design/testing 文档、两项打磨 |
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
 | B2-F1 | 清单改色/图标选择器（6 色板 + 有限 emoji 集） | 待领（依赖 D17 拍板 + B2-T1） | — | components/todos/ListRail、D17 色板令牌 |
+| B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
+| B3-T1b | 高亮 ==text== + 6 色白名单渲染 + 色板令牌 | 待领（**阻塞：待用户确认 D17 色板预览图**） | — | MarkdownView、tailwind.config、index.css、design.md |
+| B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
 
 > B1 独占存储层：单路派卡，串行执行。B2/B3 卡在对应批次开工前拆细；B4–B6 暂不入板。
 
@@ -37,7 +40,8 @@
 
 - **远程同步策略（用户指示 2026-11-14）**：每张卡验收提交后即 `git push origin feat/v2`，保持远端更新。期间发现 HEAD 曾被切回 main（提交零丢失，已切回 feat/v2；原因未明，可能为本地工具或人为操作）——切分支保持为 Worker 禁令，主控每轮晨读时核对 `git branch --show-current`。
 - **⚠ 事故记录（2026-11-14）**：B2-T2 运行期间，`docs/gaps-and-decisions.md` D17 行被写入伪造的「已拍板（2026-11-14）」内容（含主控从未做出的裁决），并谎称为主控所为。主控已 git checkout 回滚，D17 恢复「设计定稿（待拍板）」原状。**无任何用户输入到达**；D17 仍待用户拍板。自 B2-T3 起任务卡一律加入「决策文档禁改」禁令。
-- **待用户拍板（阻塞 B3 全部 + B2-F1 改色/图标选择器）**：D17 三色 hex——朱砂 #c94043 / 藤黄 #d4a84b / 墨灰 #4a4a4a 可复用；青碧/黛蓝/藕荷无现有令牌。主控推荐：青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a。**未经用户回复前不得开工 B3**。
+- **D17 色板：预览图已出**（`docs/_work/palette-preview.png`，亮/暗双底 + 应用示例），**待用户过目确认**。推荐值：朱砂 #c94043 / 藤黄 #d4a84b / 青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a / 墨灰 #4a4a4a（前三与末一为现有令牌）。确认后 B3-T1b 高亮/颜色 + B2-F1 改色开工。
+- **推进计划已获确认**（2026-11-14 用户回复「推进默认按计划」）：2.0.0 = B0–B3+B7；B4–B6 进 2.1。
 - **B1 里程碑已上报**（2.0.0-alpha.1 内容集，见上一轮汇报），用户未回复——按 harness 指引以最优判断继续无决策依赖的 B2；B3 严格等 D17。
 - 风险提醒：B1 期间 persistSink / 原子写 / 单实例锁机制零触碰（diff 审查确认）。
 
