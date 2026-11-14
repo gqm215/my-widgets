@@ -93,7 +93,8 @@ npm run pack             # Node SEA 单文件：release/墨集.exe
 |---|---|
 | Note | `id, title, content, tags: string[], isFavorite, createdAt, updatedAt` |
 | Memo | `id, content, createdAt` |
-| Todo | `id, title, description?, priority: high/medium/low, dueDate?, completed, createdAt, completedAt?` |
+| Todo | `id, title, description?, priority: high/medium/low/none, dueDate?, status: active/completed/abandoned, createdAt, completedAt?, abandonedAt?, listId?, parentId?` |
+| List | `id, name, color, icon?, folderId?, createdAt` |
 | Event | `id, title, description?, location?, startDate, endDate?, isAllDay, repeat: none/daily/weekly/monthly, createdAt` |
 | Tag | `id, name, color` |
 
