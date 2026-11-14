@@ -74,22 +74,29 @@ describe('Notes 页面', () => {
     expect(screen.getByText('选择或创建一条笔记')).toBeInTheDocument();
   });
 
-  it('渲染笔记列表，点击后同步 /notes/:id 并进入编辑器', async () => {
-    seedStore({
-      notes: [makeNote({ id: 'n1', title: '项目笔记', content: '正文内容' })],
-    });
-    const user = userEvent.setup();
-    renderNotes();
+  // 等待预算放宽到 15s：本用例渲染笔记预览（MarkdownView 懒加载 chunk），
+  // 全量并行时 vite-node 首次编译该链路可能超过默认 5s（B3-T1b 交接上报的抖动）。
+  // 只提高预算，断言与流程不变。
+  it(
+    '渲染笔记列表，点击后同步 /notes/:id 并进入编辑器',
+    { timeout: 15000 },
+    async () => {
+      seedStore({
+        notes: [makeNote({ id: 'n1', title: '项目笔记', content: '正文内容' })],
+      });
+      const user = userEvent.setup();
+      renderNotes();
 
-    expect(screen.getByText('项目笔记')).toBeInTheDocument();
-    await user.click(screen.getByText('项目笔记'));
+      expect(screen.getByText('项目笔记')).toBeInTheDocument();
+      await user.click(screen.getByText('项目笔记'));
 
-    await waitFor(() => {
-      expect(screen.getByTestId('location-probe')).toHaveTextContent('/notes/n1');
-    });
-    expect(screen.getByLabelText('笔记标题')).toHaveValue('项目笔记');
-    expect(screen.getByLabelText('笔记内容')).toHaveValue('正文内容');
-  });
+      await waitFor(() => {
+        expect(screen.getByTestId('location-probe')).toHaveTextContent('/notes/n1');
+      });
+      expect(screen.getByLabelText('笔记标题')).toHaveValue('项目笔记');
+      expect(screen.getByLabelText('笔记内容')).toHaveValue('正文内容');
+    },
+  );
 
   it('从 URL 进入时自动选中笔记', () => {
     seedStore({

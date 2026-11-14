@@ -28,7 +28,7 @@ describe('Report 周报页面', () => {
   it('渲染周报标题、周范围与统计卡片', () => {
     seedStore({
       notes: [makeNote({ id: 'n1', title: '本周笔记', createdAt: new Date().toISOString() })],
-      todos: [makeTodo({ id: 't1', title: '本周完成', completed: true, completedAt: new Date().toISOString() })],
+      todos: [makeTodo({ id: 't1', title: '本周完成', status: 'completed', completedAt: new Date().toISOString() })],
     });
     renderWithProviders(<Report />);
 
@@ -66,7 +66,7 @@ describe('Report 周报页面', () => {
         makeTodo({
           id: 't-last',
           title: '上周完成的任务',
-          completed: true,
+          status: 'completed',
           completedAt: withinLastWeekIso(),
         }),
       ],

@@ -112,10 +112,19 @@ graph TB
 ```ts
 Note  { id, title, content, tags: string[], isFavorite, createdAt, updatedAt }
 Memo  { id, content, createdAt }
-Todo  { id, title, description?, priority: 'high'|'medium'|'low', dueDate?: DayKey, completed, createdAt, completedAt? }
+Todo  { id, title, description?, priority: 'high'|'medium'|'low'|'none', dueDate?: DayKey,
+        status: 'active'|'completed'|'abandoned', createdAt, completedAt?, abandonedAt?,
+        listId?, parentId? }
+List  { id, name, color, icon?, folderId?, createdAt }
 Event { id, title, description?, location?, startDate: ISO, endDate?: ISO, isAllDay, repeat: 'none'|'daily'|'weekly'|'monthly', createdAt }
 Tag   { id, name, color }
 ```
+
+**清单与子任务语义**（v2 新增）：
+
+- 删除清单不删任务：`deleteList` 将该清单下任务的 `listId` 清空，任务落入收集箱（C1）。
+- 子任务仅一层：只有 `title + status`，无独立 listId/dueDate/priority（D4）；父删子删级联；不进智能视图统计（`utils/todoFilters.ts` 只返回顶层任务）。
+- 状态机：`status` 单字段三态（D3）+ 时间戳双不变量 `status==='completed' ⇔ completedAt`、`status==='abandoned' ⇔ abandonedAt`，由 `store.updateTodo` 维护；放弃/恢复走 `abandonTodo/restoreTodo`（仅顶层任务）。
 
 **日期契约**（`src/utils/date.ts`）：
 
@@ -132,9 +141,10 @@ Tag   { id, name, color }
 
 ## 7. 持久化与导入导出
 
-- 存储键 `moji-app-data`，载荷 `{ version: 1, data: AppState }`；兼容旧版「裸 AppState」。
+- 存储键 `moji-app-data`，载荷 `{ version: 2, data: AppState }`；兼容旧版「裸 AppState」。
 - 写入：`saveState` 保留最后一次 `pendingState`，300ms 防抖；`flushState()` 立即写出（`main.tsx` 在 `beforeunload`/`pagehide`/`visibilitychange(hidden)` 调用）。
 - 读取：`loadState()` → `normalizeState()`（条目级 sanitize + 旧 `dueDate` 迁移 + 非法日程丢弃并 warn）。
+- **v1→v2 迁移**（版本无关，sanitize 层完成）：旧 `Todo.completed` 布尔推导 `status`（true→`completed` 且保留 `completedAt`；false→`active`）；旧数据 priority 原值保留，缺失/非法回落 `none`（D2）；`lists` 集合缺失补空数组；`version` 只写不校验，迁移在 sanitizeTodo 内实现，v1/v2 载荷均可正确读入。
 - 导入：`importState(json)` 全量校验后才返回数据，失败返回 `{ ok: false, error }`；设置页在成功时 `replaceAll`，失败时状态不变并 Toast。
 - 导出：设置页使用 `snapshot()`，文件名 `moji-backup-YYYY-MM-DD.json`。
 - 初始演示数据（欢迎笔记/备忘/待办/日程/标签）在首次加载且无存储时写入。

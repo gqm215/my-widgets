@@ -37,11 +37,14 @@ export function WidgetApp({ bridge }: WidgetAppProps) {
   );
 
   const todayTodos = useMemo(
-    () => todos.filter((todo) => !todo.completed && todo.dueDate === today),
+    () => todos.filter((todo) => todo.status !== 'completed' && todo.dueDate === today),
     [todos, today],
   );
 
-  const totalPending = useMemo(() => todos.filter((todo) => !todo.completed).length, [todos]);
+  const totalPending = useMemo(
+    () => todos.filter((todo) => todo.status !== 'completed').length,
+    [todos],
+  );
 
   return (
     <div

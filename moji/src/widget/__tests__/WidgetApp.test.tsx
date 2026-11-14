@@ -31,7 +31,7 @@ describe('WidgetApp', () => {
       todos: [
         makeTodo({ id: 'today', title: '今天到期', dueDate: toDayKey(new Date()) }),
         makeTodo({ id: 'tomorrow', title: '明天到期', dueDate: tomorrow() }),
-        makeTodo({ id: 'done', title: '已完成', dueDate: toDayKey(new Date()), completed: true }),
+        makeTodo({ id: 'done', title: '已完成', dueDate: toDayKey(new Date()), status: 'completed' }),
         makeTodo({ id: 'no-date', title: '没有截止日期' }),
       ],
     });
@@ -67,9 +67,9 @@ describe('WidgetApp', () => {
     await user.click(screen.getByRole('button', { name: /勾掉我/ }));
 
     const todos = useAppStore.getState().todos;
-    expect(todos.find((todo) => todo.id === 'todo-open')?.completed).toBe(true);
+    expect(todos.find((todo) => todo.id === 'todo-open')?.status).toBe('completed');
     // 不影响其他待办
-    expect(todos.find((todo) => todo.id === 'todo-other')?.completed).toBe(false);
+    expect(todos.find((todo) => todo.id === 'todo-other')?.status).toBe('active');
   });
 
   it('Web 预览下没有关闭按钮', () => {

@@ -78,7 +78,7 @@ describe('initPersistence', () => {
     // 有同步能力时初始化也用同步写，避免首次启动就丢
     expect(fake.saveSync).toHaveBeenCalledTimes(1);
     const saved = fake.saveSync.mock.calls[0][0];
-    expect(JSON.parse(saved)).toMatchObject({ version: 1, data: { notes: [], todos: [] } });
+    expect(JSON.parse(saved)).toMatchObject({ version: 2, data: { notes: [], todos: [] } });
   });
 
   it('远端有数据时以数据文件为准灌入 store 与 localStorage', async () => {
@@ -313,7 +313,7 @@ describe('数据持久化可靠性', () => {
 describe('持久化载荷', () => {
   it('serializeState 会写入 savedAt 时间戳', () => {
     const payload = serializeState(emptyState(), 1234);
-    expect(JSON.parse(payload)).toMatchObject({ version: 1, savedAt: 1234 });
+    expect(JSON.parse(payload)).toMatchObject({ version: 2, savedAt: 1234 });
     expect(payloadSavedAt(payload)).toBe(1234);
   });
 

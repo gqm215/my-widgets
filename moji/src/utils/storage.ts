@@ -1,8 +1,8 @@
-import type { AppState, Event, Memo, Note, Tag, Todo } from '@/types';
+import type { AppState, Event, List, Memo, Note, Tag, Todo } from '@/types';
 import { toDate, toDayKey } from '@/utils/date';
 
 const STORAGE_KEY = 'moji-app-data';
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 /** 生成唯一 ID（优先使用原生 UUID） */
 export function generateId(): string {
@@ -44,14 +44,15 @@ const initialData: AppState = {
       description: '探索各个模块，感受墨色纸韵的魅力',
       priority: 'high',
       dueDate: toDayKey(new Date()),
-      completed: false,
+      status: 'active',
+      listId: 'list-work',
       createdAt: '2024-01-01T00:00:00.000Z',
     },
     {
       id: 'welcome-todo-2',
       title: '创建第一条笔记',
       priority: 'medium',
-      completed: false,
+      status: 'active',
       createdAt: '2024-01-01T00:00:00.000Z',
     },
   ],
@@ -71,6 +72,9 @@ const initialData: AppState = {
     { id: 'tag-study', name: '学习', color: '#d4a84b' },
     { id: 'tag-life', name: '生活', color: '#5a9e89' },
     { id: 'tag-welcome', name: '欢迎', color: '#8a8a8a' },
+  ],
+  lists: [
+    { id: 'list-work', name: '工作', color: '#c94043', createdAt: '2024-01-01T00:00:00.000Z' },
   ],
 };
 
@@ -111,7 +115,9 @@ function asTimestamp(value: unknown, fallback: string): string {
 }
 
 function asPriority(value: unknown): Todo['priority'] {
-  return value === 'high' || value === 'low' || value === 'medium' ? value : 'medium';
+  return value === 'high' || value === 'low' || value === 'medium' || value === 'none'
+    ? value
+    : 'none';
 }
 
 function asRepeat(value: unknown): Event['repeat'] {
@@ -154,12 +160,22 @@ function sanitizeTodo(raw: unknown, now: string): Todo | null {
   const title = asOptionalString(raw.title);
   if (!id || !title) return null;
 
-  const completed = raw.completed === true;
+  // status 版本无关迁移（v1 completed 布尔 → v2 status 单字段）：
+  // - raw 中有合法 status 字符串则直接采用
+  // - 否则 completed === true → 'completed'（completedAt 原值保留），其余 → 'active'
+  // - status 非法值 → 'active'
+  const status: Todo['status'] =
+    raw.status === 'active' || raw.status === 'completed' || raw.status === 'abandoned'
+      ? raw.status
+      : raw.completed === true
+        ? 'completed'
+        : 'active';
+
   const todo: Todo = {
     id,
     title,
     priority: asPriority(raw.priority),
-    completed,
+    status,
     createdAt: asTimestamp(raw.createdAt, now),
   };
 
@@ -168,7 +184,13 @@ function sanitizeTodo(raw: unknown, now: string): Todo | null {
   const dueDate = asOptionalString(raw.dueDate);
   if (dueDate) todo.dueDate = dueDate;
   const completedAt = asOptionalString(raw.completedAt);
-  if (completed && completedAt) todo.completedAt = completedAt;
+  if (status === 'completed' && completedAt) todo.completedAt = completedAt;
+  const abandonedAt = asOptionalString(raw.abandonedAt);
+  if (status === 'abandoned' && abandonedAt) todo.abandonedAt = abandonedAt;
+  const listId = asOptionalString(raw.listId);
+  if (listId) todo.listId = listId;
+  const parentId = asOptionalString(raw.parentId);
+  if (parentId) todo.parentId = parentId;
 
   return todo;
 }
@@ -211,6 +233,24 @@ function sanitizeTag(raw: unknown): Tag | null {
   };
 }
 
+function sanitizeListEntity(raw: unknown, now: string): List | null {
+  if (!isRecord(raw)) return null;
+  const id = asOptionalString(raw.id);
+  const name = asOptionalString(raw.name);
+  if (!id || !name) return null;
+  const list: List = {
+    id,
+    name,
+    color: asOptionalString(raw.color) ?? '#8a8a8a',
+    createdAt: asTimestamp(raw.createdAt, now),
+  };
+  const icon = asOptionalString(raw.icon);
+  if (icon) list.icon = icon;
+  const folderId = asOptionalString(raw.folderId);
+  if (folderId) list.folderId = folderId;
+  return list;
+}
+
 function sanitizeList<T>(
   raw: unknown[],
   sanitizeOne: (item: unknown) => T | null
@@ -228,8 +268,8 @@ function sanitizeList<T>(
  *
  * - 仅在 notes / todos 缺失或不是数组时返回 null
  * - 其余集合缺失时补空数组
- * - 条目级校验：丢弃缺少 id（笔记/待办/日程还需 title、标签还需 name）的条目
- * - 补齐默认值：priority=medium、repeat=none、isFavorite=false、tags=[]、completed=false
+ * - 条目级校验：丢弃缺少 id（笔记/待办/日程还需 title、标签/清单还需 name）的条目
+ * - 补齐默认值：priority=none（D2）、repeat=none、isFavorite=false、tags=[]、status=active
  * - 不处理日期迁移（见 normalizeState）
  */
 export function sanitize(raw: unknown): AppState | null {
@@ -243,6 +283,7 @@ export function sanitize(raw: unknown): AppState | null {
     todos: sanitizeList(raw.todos, (item) => sanitizeTodo(item, now)),
     events: Array.isArray(raw.events) ? sanitizeList(raw.events, (item) => sanitizeEvent(item, now)) : [],
     tags: Array.isArray(raw.tags) ? sanitizeList(raw.tags, sanitizeTag) : [],
+    lists: Array.isArray(raw.lists) ? sanitizeList(raw.lists, (item) => sanitizeListEntity(item, now)) : [],
   };
 }
 
@@ -291,6 +332,7 @@ function normalizeEventDates(event: Event): Event | null {
 /**
  * 在 sanitize 基础上做数据迁移：
  * - 旧 Todo.dueDate（ISO）→ 本地日键
+ * - 旧 Todo.completed 布尔 → status 单字段（版本无关，见 sanitizeTodo）
  * - 丢弃日期非法的日程（console.warn）
  */
 export function normalizeState(raw: unknown): AppState | null {
@@ -315,6 +357,7 @@ export function normalizeState(raw: unknown): AppState | null {
     todos,
     events,
     tags: safe.tags,
+    lists: safe.lists,
   };
 }
 

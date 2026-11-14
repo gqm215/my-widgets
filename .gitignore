@@ -31,3 +31,6 @@ sea-prep.blob
 # 桌面壳（Tauri）构建缓存与生成物
 src-tauri/target
 src-tauri/gen
+
+# Agent tooling cache
+.mimosa/

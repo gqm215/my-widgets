@@ -26,7 +26,7 @@ export default function Today() {
     });
   };
 
-  const completedTodosCount = todos.filter(t => t.completed).length;
+  const completedTodosCount = todos.filter(t => t.status === 'completed').length;
   const totalTodosCount = todos.length;
 
   // 一次建索引（含循环日程展开），取出今日待办与日程
@@ -79,7 +79,7 @@ export default function Today() {
             {todayTodos.length}
           </p>
           <p className="text-ink-400 dark:text-ink-300 text-sm mt-1">
-            {todayTodos.filter(t => t.completed).length} 已完成
+            {todayTodos.filter(t => t.status === 'completed').length} 已完成
           </p>
         </div>
 
@@ -152,11 +152,11 @@ export default function Today() {
                     <button
                       type="button"
                       role="checkbox"
-                      aria-checked={todo.completed}
-                      aria-label={`标记「${todo.title}」为${todo.completed ? '未完成' : '已完成'}`}
+                      aria-checked={todo.status === 'completed'}
+                      aria-label={`标记「${todo.title}」为${todo.status === 'completed' ? '未完成' : '已完成'}`}
                       onClick={() => toggleTodo(todo.id)}
                       className={`w-5 h-5 rounded border-2 mt-0.5 flex-shrink-0 transition-colors duration-200 ${
-                        todo.completed
+                        todo.status === 'completed'
                           ? 'bg-success border-success'
                           : todo.priority === 'high'
                           ? 'border-vermilion'
@@ -165,13 +165,13 @@ export default function Today() {
                           : 'border-ink-300 dark:border-ink-500'
                       }`}
                     >
-                      {todo.completed && (
+                      {todo.status === 'completed' && (
                         <CheckSquare className="w-3 h-3 text-white m-auto" strokeWidth={3} />
                       )}
                     </button>
 
                     <div className="flex-1">
-                      <h4 className={`font-medium ${todo.completed ? 'text-ink-300 line-through' : 'text-ink-900 dark:text-ink-100'}`}>
+                      <h4 className={`font-medium ${todo.status === 'completed' ? 'text-ink-300 line-through' : 'text-ink-900 dark:text-ink-100'}`}>
                         {todo.title}
                       </h4>
                       {todo.description && (
@@ -187,7 +187,7 @@ export default function Today() {
                               : 'bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-300'
                           }`}
                         >
-                          {todo.priority === 'high' ? '高优先级' : todo.priority === 'medium' ? '中优先级' : '低优先级'}
+                          {todo.priority === 'high' ? '高优先级' : todo.priority === 'medium' ? '中优先级' : todo.priority === 'none' ? '无优先级' : '低优先级'}
                         </span>
                         <button
                           onClick={() => toggleExpand(todo.id)}

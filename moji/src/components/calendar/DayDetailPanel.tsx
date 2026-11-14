@@ -106,7 +106,7 @@ export function DayDetailPanel({
                   key={todo.id}
                   className={cn(
                     'text-sm px-2 py-1.5 rounded mb-1',
-                    todo.completed
+                    todo.status === 'completed'
                       ? 'bg-ink-100 dark:bg-ink-700 text-ink-400 dark:text-ink-300 line-through'
                       : todo.priority === 'high'
                         ? 'bg-vermilion/10 text-ink-900 dark:text-ink-100'
