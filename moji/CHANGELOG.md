@@ -4,9 +4,7 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循语义化版本。
 
-## [Unreleased]
-
-### 2.0.0（待发布）
+## [2.0.0] - 2026-11-15
 
 #### 新增
 

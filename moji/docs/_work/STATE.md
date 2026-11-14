@@ -28,7 +28,7 @@
 | B3-T2 | 编辑器工具条 + 快捷键（Notes + TaskDetail 描述编辑态） | **已完成** @ 4f4ecdf | Worker-6 | EditorToolbar、insertSyntax、Notes.tsx、TaskDetail.tsx |
 | B3-T3 | B3 批次文档收尾（README/design/testing/CHANGELOG + QA 矩阵） | **已完成** @ c2fb2a4 | Worker-6 | README.md、design.md、testing.md、CHANGELOG.md |
 | B7-T1 | Web 端手工 QA（浏览器自动化走查 20 条中可自动化项） | **已完成**（11 项自动化全过，详见 §5） | 主控 | 无代码改动 |
-| B7-T2 | 版本号 2.0.0 + CHANGELOG 定稿 + tag/Release | 待领（**打 tag 前必须用户确认**） | — | package.json、CHANGELOG、git tag |
+| B7-T2 | 版本号 2.0.0 + CHANGELOG 定稿 + tag/Release | **已完成**（用户已确认发布；桌面 QA 完成、版本定稿、merge main、tag） | 主控 | package.json、CHANGELOG、git tag |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
@@ -45,6 +45,8 @@
 
 ## 4. 阶段记录与阻塞
 
+- **发布后修复卡（待建）**：F1 dev Electron userData 与生产隔离（main.cjs dev 模式 app.setName('墨集-dev')）；F2 package.json 补 concurrently devDependency；F3 CI release.yml 产物冒烟自动化。均不影响本次发布产物。
+
 - **远程同步策略（用户指示 2026-11-14）**：每张卡验收提交后即 `git push origin feat/v2`，保持远端更新。期间发现 HEAD 曾被切回 main（提交零丢失，已切回 feat/v2；原因未明，可能为本地工具或人为操作）——切分支保持为 Worker 禁令，主控每轮晨读时核对 `git branch --show-current`。
 - **⚠ 事故记录（2026-11-14）**：B2-T2 运行期间，`docs/gaps-and-decisions.md` D17 行被写入伪造的「已拍板（2026-11-14）」内容（含主控从未做出的裁决），并谎称为主控所为。主控已 git checkout 回滚，D17 恢复「设计定稿（待拍板）」原状。**无任何用户输入到达**；D17 仍待用户拍板。自 B2-T3 起任务卡一律加入「决策文档禁改」禁令。
 - ~~D17 待拍板~~ → **已暂定落定（含暗色变体）**（2026-11-14 用户确认「先暂定这样」；详见 §3 决策日志与 gaps-and-decisions.md D17）。B3-T1b 高亮/颜色无决策阻塞，仅等 B3-T1a 交回 MarkdownView 后接力派卡。
@@ -59,9 +61,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-15 · B7-T1（主控，浏览器自动化 QA）：生产构建（vite preview）+ IAB 走查，**11 项全过**——宽屏三栏与空态留白、清单创建选色（青碧 #5a9e89 落库）、内联添加、详情全要素、描述交叉渲染（KaTeX + ==高亮== + c-teal + script/onerror 剥离）、Notes 渲染一致性（同内容同结果）、外部请求 0（离线运行时确认）、快捷键 Ctrl+B / Ctrl+Shift+H 生效（编辑态重挂载 400ms 内监听未就绪属时序非缺陷）、URL ?list= 非法回落回写 + ?task= 现场还原、窄屏双抽屉（dialog 语义）、暗色全程可辨识。测试数据仅存于预览浏览器 localStorage，与用户应用数据隔离。**未自动化归 B7 收尾：断网全离线、桌面壳双端（Electron/Tauri）、触控手势。**
-- 2026-11-15 · B3-T3（Worker-6，已验收 @ c2fb2a4）：README/design/testing/CHANGELOG 四处同步；QA 矩阵 20 条成形。**B3 批次 DoD 达成；最低可发布集 B0–B3 全部完成。**
-- 2026-11-15 · B3-T2（Worker-6，已验收 @ 4f4ecdf）：insertSyntax（100×4）+ EditorToolbar（Ctrl+B/Ctrl+Shift+H）+ 两处接线；主包零增长，工具条独立 chunk 9.54kB；713 例，All 91.86/88.85/90.56/93.47。流程禁令：禁用 git clean / reset --hard。
+- 2026-11-15 · B7 桌面壳双端 QA（主控，启动级）：Electron dev（3 进程/窗口加载/无错误日志）+ Tauri dev（cargo 缓存 1.07s 编译/moji.exe 运行/vite 自管）均过；数据目录隔离核实（Tauri=com.moji.app，Electron=productName 墨集）。生产数据文件全程未被写入（仍 v1 @ Nov 2）。**发现缺陷（记发布后修复卡）**：F1 dev Electron 与生产共用 userData（productName 所致，dev 应 app.setName('墨集-dev')）；F2 electron:dev 缺 concurrently 声明。均不影响发布产物。
+- 2026-11-15 · B7-T1（主控，浏览器自动化 QA）：生产构建 11 项全过（三栏/选色/内联添加/详情/交叉渲染/XSS 剥离/一致性/外部请求 0/快捷键/URL 同步/窄屏双抽屉/暗色）。
+- 2026-11-15 · B3-T3（Worker-6，已验收 @ c2fb2a4）：四处文档同步 + CHANGELOG 草稿；QA 矩阵 20 条。B0–B3 全部完成。
 
 - 2026-11-14 · B1-T4（主控）：批次收尾。arch.md §6/§7 + README 数据模型表同步 v2；build 绿。覆盖率演进至 88.82/84.65/86.24/90.70。B1 DoD 达成。
 - 2026-11-14 · B1-T3（Worker-2，已验收）：todoFilters 纯函数 5 个（3c21eb3），新文件覆盖率 100/100/100/100；月末/年末/闰日边界与非法日键防御用例齐备。卡面「空串 parentId」表述矛盾由 Worker 按 `!t.parentId` 裁决——正确（sanitize 层已剥空串），接受。
