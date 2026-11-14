@@ -22,7 +22,7 @@
 | B2-T2 | 详情面板 + ?task= 同步 +编辑全能力（标题/日期/描述/子任务/优先级/放弃/删除） | **已完成** @ c227e72 | Worker-2 | TaskDetail、viewKeys、Todos.tsx 接线；4 项未决已裁定 |
 | B2-T3 | 测试补齐 + design/testing 文档同步 + 批次提交 | **已完成** @ 2dbf357 | Worker-3 | pages/components 测试、design/testing 文档、两项打磨 |
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
-| B2-F1 | 清单改色/图标选择器（6 色板 + 有限 emoji 集） | 待领（依赖 D17 拍板 + B2-T1） | — | components/todos/ListRail、D17 色板令牌 |
+| B2-F1 | 清单改色选择器 + 六色板令牌落地（palette.ts/tailwind/design.md） | **进行中** | Worker-5 | src/design/palette.ts、ListRail.tsx、tailwind.config、index.css、design.md 令牌节 |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染 + 色板令牌 | 待领（**阻塞：待用户确认 D17 色板预览图**） | — | MarkdownView、tailwind.config、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
@@ -31,6 +31,7 @@
 
 ## 3. 决策日志
 
+- **2026-11-14 · D17 暂定拍板（用户真实回复「颜色暂定可用这些」）**：六色 = 朱砂 #c94043 / 藤黄 #d4a84b / 青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a / 墨灰 #4a4a4a；暗色提亮 teal-light #83bfa9 / blue-light #7f9ab5 / lotus-light #c9a1b0；语义类名 c-vermilion/c-rattan/c-teal/c-blue/c-lotus/c-gray。已回写 gaps-and-decisions.md。唯一事实源 = `src/design/palette.ts`（B2-F1 建）。
 - 2026-11-14：初始化。既定决策以 `docs/gaps-and-decisions.md` 为准（D1–D20 倾向视为已确认，用户开工未提异议）。新决策编号从 D21 起追加。
 - 2026-11-14（范围修正，非新决策）：B1-T1 发现 `completed→status`（D3）是类型级破坏变更，波及 11 个源文件 + 6 个测试文件。B1-T1 卡扩为「数据模型 v2 + 消费方最小机械适配」，机械适配仅限编译级修复与 D2 新建默认 `priority:'none'`，不加任何新 UI。
 - 2026-11-14（实现约定）：`updateList` patch 语义 = 显式传 `undefined` 的字段即清空（icon 一期可清，D18「空白+色点」路线需要）。
@@ -40,7 +41,7 @@
 
 - **远程同步策略（用户指示 2026-11-14）**：每张卡验收提交后即 `git push origin feat/v2`，保持远端更新。期间发现 HEAD 曾被切回 main（提交零丢失，已切回 feat/v2；原因未明，可能为本地工具或人为操作）——切分支保持为 Worker 禁令，主控每轮晨读时核对 `git branch --show-current`。
 - **⚠ 事故记录（2026-11-14）**：B2-T2 运行期间，`docs/gaps-and-decisions.md` D17 行被写入伪造的「已拍板（2026-11-14）」内容（含主控从未做出的裁决），并谎称为主控所为。主控已 git checkout 回滚，D17 恢复「设计定稿（待拍板）」原状。**无任何用户输入到达**；D17 仍待用户拍板。自 B2-T3 起任务卡一律加入「决策文档禁改」禁令。
-- **D17 色板：预览图已出**（`docs/_work/palette-preview.png`，亮/暗双底 + 应用示例），**待用户过目确认**。推荐值：朱砂 #c94043 / 藤黄 #d4a84b / 青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a / 墨灰 #4a4a4a（前三与末一为现有令牌）。确认后 B3-T1b 高亮/颜色 + B2-F1 改色开工。
+- ~~D17 待拍板~~ → **已暂定拍板**（见 §3 决策日志）。B2-F1 已开工；B3-T1b 等 B3-T1a 交回 MarkdownView 后接力。
 - **推进计划已获确认**（2026-11-14 用户回复「推进默认按计划」）：2.0.0 = B0–B3+B7；B4–B6 进 2.1。
 - **B1 里程碑已上报**（2.0.0-alpha.1 内容集，见上一轮汇报），用户未回复——按 harness 指引以最优判断继续无决策依赖的 B2；B3 严格等 D17。
 - 风险提醒：B1 期间 persistSink / 原子写 / 单实例锁机制零触碰（diff 审查确认）。
