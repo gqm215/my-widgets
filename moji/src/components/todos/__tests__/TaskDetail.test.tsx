@@ -1,10 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TaskDetail } from '../TaskDetail';
 import { useAppStore } from '@/store';
 import { renderWithProviders, resetStore, seedStore, makeTodo } from '@/test/render';
 import type { Todo } from '@/types';
+
+// B3-T1a：MarkdownView 懒加载 react-markdown + katex 链路，首次按需编译可能超过
+// waitFor 默认 1s，先在文件内预热动态模块（不改变被测的异步渲染路径）
+beforeAll(async () => {
+  await import('@/components/markdown/MarkdownViewImpl');
+});
 
 /**
  * 镜像页面接线（Todos.tsx 契约）：从 store 取最新 todo / 子任务传给 TaskDetail，
@@ -141,21 +147,26 @@ describe('TaskDetail · 描述（D6 Markdown 双态）', () => {
     await user.click(screen.getByRole('button', { name: '预览' }));
 
     expect(todoInStore('t1').description).toBe('**加粗**正文');
+    // B3-T1a：MarkdownView 懒加载，预览内容异步出现
     const preview = screen.getByLabelText('描述预览');
-    expect(preview.querySelector('strong')?.textContent).toBe('加粗');
+    await waitFor(() => {
+      expect(preview.querySelector('strong')?.textContent).toBe('加粗');
+    });
     expect(within(preview).getByText(/正文/)).toBeInTheDocument();
   });
 
-  it('GFM 任务列表渲染生效（remark-gfm）', () => {
+  it('GFM 任务列表渲染生效（remark-gfm）', async () => {
     renderDetail({ description: '- [x] 完成\n- [ ] 未完' });
     const preview = screen.getByLabelText('描述预览');
+    await waitFor(() => {
+      expect(preview.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+    });
     const checkboxes = preview.querySelectorAll('input[type="checkbox"]');
-    expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0]).toHaveAttribute('checked');
     expect(checkboxes[1]).not.toHaveAttribute('checked');
   });
 
-  it('预览渲染全要素 Markdown（标题/段落/行内码/链接/引用/代码块/列表）', () => {
+  it('预览渲染全要素 Markdown（标题/段落/行内码/链接/引用/代码块/列表）', async () => {
     const doc = [
       '# 一级',
       '## 二级',
@@ -173,7 +184,9 @@ describe('TaskDetail · 描述（D6 Markdown 双态）', () => {
     ].join('\n');
     renderDetail({ description: doc });
     const preview = screen.getByLabelText('描述预览');
-    expect(preview.querySelector('h1')?.textContent).toBe('一级');
+    await waitFor(() => {
+      expect(preview.querySelector('h1')?.textContent).toBe('一级');
+    });
     expect(preview.querySelector('h2')?.textContent).toBe('二级');
     expect(preview.querySelector('h3')?.textContent).toBe('三级');
     expect(preview.querySelector('code')?.textContent).toBe('行内代码');
@@ -218,9 +231,11 @@ describe('TaskDetail · 描述（D6 Markdown 双态）', () => {
     await user.tab();
     expect(todoInStore('t1')).toBe(before);
 
-    // 空描述切预览 → 占位文案
+    // 空描述切预览 → 占位文案（MarkdownView 懒加载，异步出现）
     await user.click(screen.getByRole('button', { name: '预览' }));
-    expect(screen.getByText('暂无描述')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('暂无描述')).toBeInTheDocument();
+    });
   });
 });
 

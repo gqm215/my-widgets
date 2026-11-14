@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Ban, Bell, CalendarDays, Check, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { Input, Textarea } from '@/components/ui';
+import MarkdownView from '@/components/markdown/MarkdownView';
 import { cn } from '@/lib/utils';
 import type { Priority, Todo } from '@/types';
 
@@ -31,43 +30,6 @@ const PRIORITY_SELECTED_CLS: Record<Priority, string> = {
   medium: 'border-rattan text-rattan bg-rattan/5 font-medium',
   low: 'border-ink-400 dark:border-ink-400 text-ink-700 dark:text-ink-200 bg-paper-dark/50 dark:bg-ink-700/50 font-medium',
   none: 'border-ink-400 dark:border-ink-400 text-ink-700 dark:text-ink-200 bg-paper-dark/50 dark:bg-ink-700/50 font-medium',
-};
-
-/**
- * 与 Notes.tsx 同款 Markdown 渲染链（react-markdown + remark-gfm，D6）。
- * 不启用 rehype-raw（B3 白名单渲染另批处理）；组件映射暂与 Notes 各持一份，
- * 抽公共 MarkdownView 归 B2-T3 打磨评估。
- */
-const markdownComponents: Components = {
-  p: ({ children }) => <p className="text-ink-700 dark:text-ink-100 mb-3 last:mb-0">{children}</p>,
-  h1: ({ children }) => (
-    <h1 className="text-ink-700 dark:text-ink-100 text-xl font-serif font-semibold mb-3 mt-4">{children}</h1>
-  ),
-  h2: ({ children }) => (
-    <h2 className="text-ink-700 dark:text-ink-100 text-lg font-serif font-semibold mb-2 mt-4">{children}</h2>
-  ),
-  h3: ({ children }) => (
-    <h3 className="text-ink-700 dark:text-ink-100 text-base font-serif font-semibold mb-2 mt-3">{children}</h3>
-  ),
-  li: ({ children }) => <li className="text-ink-700 dark:text-ink-100 mb-1">{children}</li>,
-  blockquote: ({ children }) => (
-    <blockquote className="text-ink-500 dark:text-ink-200 border-l-4 border-ink-300 dark:border-ink-600 pl-4 italic mb-3">
-      {children}
-    </blockquote>
-  ),
-  code: ({ children }) => (
-    <code className="bg-paper-dark dark:bg-ink-700 text-ink-700 dark:text-ink-100 px-1 py-0.5 rounded text-sm">
-      {children}
-    </code>
-  ),
-  pre: ({ children }) => (
-    <pre className="bg-black text-ink-100 p-3 rounded-lg overflow-x-auto mb-3">{children}</pre>
-  ),
-  a: ({ children, href }) => (
-    <a href={href} className="text-rattan dark:text-rattan-light underline" target="_blank" rel="noreferrer">
-      {children}
-    </a>
-  ),
 };
 
 const ghostActionCls =
@@ -235,7 +197,7 @@ export function TaskDetail({ todo, subtasks, onClose, onDelete }: TaskDetailProp
           </div>
         </div>
 
-        {/* 描述（D6）：编辑（Textarea）/ 预览（react-markdown + remark-gfm）显式切换 */}
+        {/* 描述（D6）：编辑（Textarea）/ 预览（共享 MarkdownView）显式切换 */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs font-medium text-ink-400 dark:text-ink-300">描述</p>
@@ -286,9 +248,8 @@ export function TaskDetail({ todo, subtasks, onClose, onDelete }: TaskDetailProp
               aria-label="描述预览"
               className="markdown-body min-h-24 px-1 py-0.5 text-sm"
             >
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {descDraft || '*暂无描述*'}
-              </ReactMarkdown>
+              {/* B3-T1a：共享 MarkdownView（detail 紧凑排版档位），公式语法 $行内$ / $$块级$$ */}
+              <MarkdownView variant="detail">{descDraft || '*暂无描述*'}</MarkdownView>
             </div>
           )}
         </div>

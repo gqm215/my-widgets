@@ -1,10 +1,9 @@
 import { useAppStore } from '@/store';
 import { Plus, Star, Trash2, ArrowLeft, FileText, X } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ConfirmDialog, Textarea, EmptyState } from '@/components/ui';
+import MarkdownView from '@/components/markdown/MarkdownView';
 import { cn } from '@/lib/utils';
 import type { Note } from '@/types';
 
@@ -513,40 +512,8 @@ export default function Notes() {
 
               <div className="w-full md:w-1/2 p-4 overflow-y-auto border-t md:border-t-0 border-paper-dark dark:border-ink-700">
                 <div className="markdown-body">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      p: ({ children }) => (
-                        <p className="text-ink-700 dark:text-ink-100 mb-4">{children}</p>
-                      ),
-                      h1: ({ children }) => (
-                        <h1 className="text-ink-700 dark:text-ink-100 text-2xl font-serif font-semibold mb-4 mt-6">{children}</h1>
-                      ),
-                      h2: ({ children }) => (
-                        <h2 className="text-ink-700 dark:text-ink-100 text-xl font-serif font-semibold mb-3 mt-5">{children}</h2>
-                      ),
-                      h3: ({ children }) => (
-                        <h3 className="text-ink-700 dark:text-ink-100 text-lg font-serif font-semibold mb-2 mt-4">{children}</h3>
-                      ),
-                      li: ({ children }) => (
-                        <li className="text-ink-700 dark:text-ink-100 mb-1">{children}</li>
-                      ),
-                      blockquote: ({ children }) => (
-                        <blockquote className="text-ink-500 dark:text-ink-200 border-l-4 border-ink-300 dark:border-ink-600 pl-4 italic mb-4">{children}</blockquote>
-                      ),
-                      code: ({ children }) => (
-                        <code className="bg-paper-dark dark:bg-ink-700 text-ink-700 dark:text-ink-100 px-1 py-0.5 rounded text-sm">{children}</code>
-                      ),
-                      pre: ({ children }) => (
-                        <pre className="bg-black text-ink-100 p-4 rounded-lg overflow-x-auto mb-4">{children}</pre>
-                      ),
-                      a: ({ children, href }) => (
-                        <a href={href} className="text-rattan dark:text-rattan-light underline" target="_blank" rel="noreferrer">{children}</a>
-                      ),
-                    }}
-                  >
-                    {editingContent || '*预览区域*'}
-                  </ReactMarkdown>
+                  {/* B3-T1a：共享 MarkdownView（D6 排版档位），公式语法 $行内$ / $$块级$$ */}
+                  <MarkdownView variant="note">{editingContent || '*预览区域*'}</MarkdownView>
                 </div>
               </div>
             </div>
