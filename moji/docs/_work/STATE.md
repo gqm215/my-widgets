@@ -5,7 +5,7 @@
 
 ## 1. 当前阶段
 
-- 批次：**B3 笔记增强 · T1a 公式渲染进行中**（B2 核心已完成；用户已确认推进按计划：2.0.0 = B0–B3+B7）
+- 批次：**B3 笔记增强 · 全部完成**。**最低可发布集 B0–B3 已全部达成**，仅剩 B7 发布（QA → 版本定稿 → 等用户确认打 tag）
 - 分支：`feat/v2`（**每卡验收后推送 origin/feat/v2**；远程 github.com/gqm215/my-widgets）
 - 目标版本：2.0.0；最低可发布集 B0+B1+B2+B3+B7
 
@@ -26,7 +26,9 @@
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **已完成** @ 504b77f | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染 | **已完成** @ d899cd2 | Worker-6 | MarkdownViewImpl、index.css、design.md §4.12 |
 | B3-T2 | 编辑器工具条 + 快捷键（Notes + TaskDetail 描述编辑态） | **已完成** @ 4f4ecdf | Worker-6 | EditorToolbar、insertSyntax、Notes.tsx、TaskDetail.tsx |
-| B3-T3 | B3 批次文档收尾（README/design/testing/CHANGELOG + QA 矩阵） | **进行中** | Worker-6 接力 | README.md、design.md、testing.md、CHANGELOG.md |
+| B3-T3 | B3 批次文档收尾（README/design/testing/CHANGELOG + QA 矩阵） | **已完成** @ c2fb2a4 | Worker-6 | README.md、design.md、testing.md、CHANGELOG.md |
+| B7-T1 | Web 端手工 QA（浏览器自动化走查 20 条中可自动化项） | 待领 | — | 无代码改动 |
+| B7-T2 | 版本号 2.0.0 + CHANGELOG 定稿 + tag/Release | 待领（**打 tag 前必须用户确认**） | — | package.json、CHANGELOG、git tag |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
@@ -57,9 +59,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-15 · B3-T2（Worker-6，已验收 @ 4f4ecdf）：insertSyntax 纯函数（100×4）+ EditorToolbar（8 按钮/六色面板/Ctrl+B、Ctrl+Shift+H）+ Notes/TaskDetail 接线；主包 224.56kB **零增长**，工具条独立共享 chunk 9.54kB；独立复跑 713 例全绿，All **91.86/88.85/90.56/93.47**。裁定接受：选中浮现=高亮可用态；颜色面板选后保持展开。事故披露：Worker 曾 git clean -f 误删自己的未跟踪新文件，逐字重建后全绿——**流程规约新增：禁用 git clean / reset --hard**。
-- 2026-11-15 · B3-T3 已派 Worker-6 接力：README/design/testing/CHANGELOG 四处同步 + B7 QA 矩阵（零源码改动）。
-- 2026-11-15 · B3-T1b（Worker-6，已验收 @ d899cd2）：==高亮== + 6 色白名单（自研零依赖，URL 属性不解析）；50 用例含 XSS/协议/公式共存；保守口径（== 紧邻配对）已测锁定。
+- 2026-11-15 · B3-T3（Worker-6，已验收 @ c2fb2a4）：README 待办/笔记 bullet 重写、design.md §4.12 工具条规范、testing.md QA 矩阵 20 条 + §11 B3 对照表、CHANGELOG 2.0.0 草稿（新增 9/变更 4/已知限制 3）。纯文档，713 例全绿。裁定接受：无空 Fixed 节、README 保留虚拟滚动。**B3 批次 DoD 达成；最低可发布集 B0–B3 全部完成。**
+- 2026-11-15 · B3-T2（Worker-6，已验收 @ 4f4ecdf）：insertSyntax（100×4）+ EditorToolbar（Ctrl+B/Ctrl+Shift+H）+ 两处接线；主包零增长，工具条独立 chunk 9.54kB；713 例，All 91.86/88.85/90.56/93.47。事故披露（git clean 误删自建文件后重建）已阅，流程禁令已立。
+- 2026-11-15 · B3-T1b（Worker-6，已验收 @ d899cd2）：==高亮== + 6 色白名单（自研零依赖）；50 用例含 XSS/协议/公式共存。保守口径（== 紧邻配对）锁定。
 
 - 2026-11-14 · B1-T4（主控）：批次收尾。arch.md §6/§7 + README 数据模型表同步 v2；build 绿。覆盖率演进至 88.82/84.65/86.24/90.70。B1 DoD 达成。
 - 2026-11-14 · B1-T3（Worker-2，已验收）：todoFilters 纯函数 5 个（3c21eb3），新文件覆盖率 100/100/100/100；月末/年末/闰日边界与非法日键防御用例齐备。卡面「空串 parentId」表述矛盾由 Worker 按 `!t.parentId` 裁决——正确（sanitize 层已剥空串），接受。
@@ -67,5 +69,6 @@
 
 ## 6. 基线锚点（只读参考）
 
-- v1.1.3 @ main 4758891：`npm run verify` ≈ 52s，`npm run build` ≈ 15s。
+- **发布前基线（B3 收尾 @ c2fb2a4）**：713 例全绿；覆盖率 All **91.86/88.85/90.56/93.47**（v1.1.3 基线 88.03/82.72/85.59/90.17，全程只升不降）；主包 **224.56kB/gzip 69.89**（零增长）；chunks：EditorToolbar 9.54kB / MarkdownViewImpl 284.52kB+CSS 28.88kB（独立懒加载）；dist 无外部字体 URL；测试/构建耗时 ≈ 60s/14s。
+- v1.1.3 @ main 4758891：verify ≈ 52s，build ≈ 15s。
 - 数据文件：`%APPDATA%/墨集/moji-data.json`（Electron userData）。
