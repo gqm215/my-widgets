@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { screen, within, waitFor } from '@testing-library/react';
+import { act, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation } from 'react-router-dom';
 import { addDays, format } from 'date-fns';
@@ -92,6 +92,46 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
         expect(probe).toHaveTextContent('/todos?list=inbox');
         expect(probe).not.toHaveTextContent('new=1');
       });
+    });
+
+    it('今天/最近7天视图空态文案引导设置截止日期', () => {
+      const first = renderTodos('/todos?list=today');
+      expect(
+        screen.getByText('为待办设置今天的截止日期，它会出现在这里。')
+      ).toBeInTheDocument();
+      first.unmount();
+
+      renderTodos('/todos?list=next7');
+      expect(
+        screen.getByText('未来 7 天内到期或已逾期的待办会集中在这里。')
+      ).toBeInTheDocument();
+    });
+
+    it('当前查看的清单被删除时回落收集箱并写回 ?list=inbox（任务本身保留）', async () => {
+      seedStore({
+        lists: [makeList({ id: 'l1', name: '工作' })],
+        todos: [makeTodo({ id: 't1', title: '清单内任务', listId: 'l1' })],
+      });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '工作（1 项待办）' }));
+      expect(screen.getByRole('heading', { name: '工作' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: '删除清单「工作」' }));
+      await user.click(
+        within(screen.getByRole('dialog', { name: '删除清单' })).getByRole('button', {
+          name: '删除',
+        })
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: '收集箱' })).toBeInTheDocument();
+        expect(screen.getByTestId('location-probe')).toHaveTextContent('list=inbox');
+      });
+      // 删清单不删任务（C1）：任务移入收集箱继续可见
+      expect(useAppStore.getState().todos).toHaveLength(1);
+      expect(screen.getByRole('button', { name: '清单内任务' })).toBeInTheDocument();
     });
   });
 
@@ -387,6 +427,113 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       expect(rowB.compareDocumentPosition(rowA) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
+    it('按优先级排序：高→中→低→无', async () => {
+      seedStore({
+        todos: [
+          makeTodo({ id: 'n', title: '无优', priority: 'none' }),
+          makeTodo({ id: 'h', title: '高优', priority: 'high' }),
+          makeTodo({ id: 'l', title: '低优', priority: 'low' }),
+          makeTodo({ id: 'm', title: '中优', priority: 'medium' }),
+        ],
+      });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.selectOptions(screen.getByRole('combobox', { name: '排序方式' }), 'priority');
+
+      const rowH = screen.getByTestId('todo-h');
+      const rowM = screen.getByTestId('todo-m');
+      const rowL = screen.getByTestId('todo-l');
+      const rowN = screen.getByTestId('todo-n');
+      expect(rowH.compareDocumentPosition(rowM) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(rowM.compareDocumentPosition(rowL) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(rowL.compareDocumentPosition(rowN) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('优先级筛空时展示「没有匹配的待办」引导（区别于真空态）', async () => {
+      seedStore({
+        todos: [
+          makeTodo({ id: 't1', title: '高优任务', priority: 'high' }),
+          makeTodo({ id: 't2', title: '中优任务', priority: 'medium' }),
+        ],
+      });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.selectOptions(screen.getByRole('combobox', { name: '按优先级筛选' }), 'low');
+      expect(screen.getByText('没有匹配的待办')).toBeInTheDocument();
+      expect(screen.getByText('试试调整优先级筛选，查看更多内容。')).toBeInTheDocument();
+
+      await user.selectOptions(screen.getByRole('combobox', { name: '按优先级筛选' }), 'all');
+      expect(screen.getByText('高优任务')).toBeInTheDocument();
+      expect(screen.queryByText('没有匹配的待办')).not.toBeInTheDocument();
+    });
+
+    it('进行中内容全被隐藏时空态提示从右上角开关恢复', async () => {
+      seedStore({ todos: [makeTodo({ id: 't1', title: '已完任务', status: 'completed' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '隐藏已完成分组' }));
+      expect(screen.getByText('没有进行中的待办')).toBeInTheDocument();
+      expect(
+        screen.getByText('已完成与已放弃的内容已隐藏，可从右上角开关恢复显示。')
+      ).toBeInTheDocument();
+    });
+
+    it('详情中放弃任务：列表出现已放弃折叠分组（页面接线）', async () => {
+      seedStore({ todos: [makeTodo({ id: 't1', title: '要放弃的任务' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '要放弃的任务' }));
+      await user.click(
+        within(screen.getByRole('complementary', { name: '任务详情' })).getByRole('button', {
+          name: '放弃「要放弃的任务」',
+        })
+      );
+
+      expect(useAppStore.getState().todos[0].status).toBe('abandoned');
+      const fold = screen.getByRole('button', { name: '已放弃 (1)' });
+      expect(fold).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('行内优先级小旗：高优朱砂/中优藤黄展示并附读屏文本，低/无优不显示（B2-T3 打磨）', () => {
+      seedStore({
+        todos: [
+          makeTodo({ id: 'h', title: '高优任务', priority: 'high' }),
+          makeTodo({ id: 'm', title: '中优任务', priority: 'medium' }),
+          makeTodo({ id: 'n', title: '无优任务', priority: 'none' }),
+        ],
+      });
+      renderTodos();
+
+      const rowH = screen.getByTestId('todo-h');
+      const flagH = rowH.querySelector('.lucide-flag');
+      expect(flagH).toBeInTheDocument();
+      expect(flagH).toHaveClass('text-vermilion');
+      expect(within(rowH).getByText('高优先级')).toBeInTheDocument();
+
+      const rowM = screen.getByTestId('todo-m');
+      expect(rowM.querySelector('.lucide-flag')).toHaveClass('text-rattan');
+      expect(within(rowM).getByText('中优先级')).toBeInTheDocument();
+
+      const rowN = screen.getByTestId('todo-n');
+      expect(rowN.querySelector('.lucide-flag')).toBeNull();
+      expect(within(rowN).queryByText(/优先级/)).not.toBeInTheDocument();
+    });
+
+    it('行内截止日期带日历小图标（纯展示，无按钮语义）', () => {
+      seedStore({ todos: [makeTodo({ id: 't1', title: '有日期任务', dueDate: tomorrowKey })] });
+      renderTodos();
+
+      const row = screen.getByTestId('todo-t1');
+      expect(row.querySelector('.lucide-calendar-days')).toBeInTheDocument();
+      expect(within(row).getByText(`截止 ${tomorrowKey}`)).toBeInTheDocument();
+      // 小旗与日期均不注册点击行为：行内无可点优先级控件（改优先级走详情栏）
+      expect(within(row).queryByRole('button', { name: /优先级/ })).not.toBeInTheDocument();
+    });
+
     it('子任务：计数展开、勾选、hover 删除', async () => {
       seedStore({
         todos: [
@@ -473,16 +620,34 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       expect(screen.queryByRole('textbox', { name: '新清单名称' })).not.toBeInTheDocument();
     });
 
-    it('「+」菜单：模板入口为禁用态', async () => {
+    it('「+」菜单：空白清单入口可用、模板入口为禁用态', async () => {
       const user = userEvent.setup();
       renderTodos();
 
       await user.click(screen.getByRole('button', { name: '新建清单菜单' }));
       const menu = screen.getByRole('menu', { name: '新建清单选项' });
-      expect(within(menu).getByRole('menuitem', { name: '新建清单' })).toBeEnabled();
+      expect(within(menu).getByRole('menuitem', { name: '新建空白清单' })).toBeEnabled();
       const templateItem = within(menu).getByRole('menuitem', { name: /从模板新建/ });
       expect(templateItem).toBeDisabled();
       expect(templateItem).toHaveTextContent('即将上线');
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('menu', { name: '新建清单选项' })).not.toBeInTheDocument();
+    });
+
+    it('「+」菜单：Esc 与外点关闭', async () => {
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '新建清单菜单' }));
+      expect(screen.getByRole('menu', { name: '新建清单选项' })).toBeInTheDocument();
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('menu', { name: '新建清单选项' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: '新建清单菜单' }));
+      expect(screen.getByRole('menu', { name: '新建清单选项' })).toBeInTheDocument();
+      await user.click(screen.getByRole('heading', { name: '收集箱' }));
+      expect(screen.queryByRole('menu', { name: '新建清单选项' })).not.toBeInTheDocument();
     });
 
     it('清单改名：行内编辑回车保存', async () => {
@@ -498,6 +663,42 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
 
       expect(useAppStore.getState().lists[0].name).toBe('新名');
       expect(await screen.findByText('清单已重命名')).toBeInTheDocument();
+    });
+
+    it('清单改名：Esc 取消编辑不落库', async () => {
+      seedStore({ lists: [makeList({ id: 'l1', name: '旧名' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '重命名清单「旧名」' }));
+      const input = screen.getByRole('textbox', { name: '清单名称' });
+      await user.clear(input);
+      await user.type(input, '草稿名{Escape}');
+      expect(screen.queryByRole('textbox', { name: '清单名称' })).not.toBeInTheDocument();
+      expect(useAppStore.getState().lists[0].name).toBe('旧名');
+      expect(screen.getByRole('button', { name: /旧名（0 项待办）/ })).toBeInTheDocument();
+    });
+
+    it('清单改名：空名回车视为取消，保留原名', async () => {
+      seedStore({ lists: [makeList({ id: 'l1', name: '旧名' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '重命名清单「旧名」' }));
+      await user.clear(screen.getByRole('textbox', { name: '清单名称' }));
+      await user.keyboard('{Enter}');
+      expect(useAppStore.getState().lists[0].name).toBe('旧名');
+      expect(screen.queryByRole('textbox', { name: '清单名称' })).not.toBeInTheDocument();
+    });
+
+    it('新建清单：空名回车不创建且保持编辑态', async () => {
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '新建清单' }));
+      await user.type(screen.getByRole('textbox', { name: '新清单名称' }), '   {Enter}');
+      expect(useAppStore.getState().lists).toHaveLength(0);
+      expect(screen.getByRole('textbox', { name: '新清单名称' })).toBeInTheDocument();
     });
 
     it('删除清单：确认文案说明任务移入收集箱，任务本身不删（C1）', async () => {
@@ -586,6 +787,59 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       });
     });
 
+    it('窄屏：详情抽屉点遮罩关闭并清 task 参数', async () => {
+      setMediaQuery('(min-width: 1024px)', false);
+      seedStore({ todos: [makeTodo({ id: 't1', title: '写周报' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '写周报' }));
+      const drawer = screen.getByRole('dialog', { name: '任务详情' });
+      await waitFor(() => {
+        expect(screen.getByTestId('location-probe')).toHaveTextContent('task=t1');
+      });
+
+      // 点遮罩（抽屉面板之外区域）关闭
+      await user.click(drawer);
+      expect(screen.queryByRole('dialog', { name: '任务详情' })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('location-probe')).not.toHaveTextContent('task=');
+      });
+    });
+
+    it('窄屏打开清单栏抽屉后切到宽屏，抽屉自动收起', async () => {
+      setMediaQuery('(min-width: 1024px)', false);
+      seedStore({ lists: [makeList({ id: 'l1', name: '工作' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '打开清单栏' }));
+      expect(screen.getByRole('dialog', { name: '清单栏' })).toBeInTheDocument();
+
+      // 用 act 包裹视口切换：媒体查询监听器同步触发 React 状态更新
+      await act(async () => {
+        setMediaQuery('(min-width: 1024px)', true);
+      });
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: '清单栏' })).not.toBeInTheDocument();
+      });
+      // 宽屏常驻清单栏直接可见
+      expect(screen.getByRole('complementary', { name: '清单栏' })).toBeInTheDocument();
+    });
+
+    it('宽屏：清单栏与详情栏同时常驻（三栏并排）', async () => {
+      seedStore({ todos: [makeTodo({ id: 't1', title: '写周报' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      expect(screen.getByRole('complementary', { name: '清单栏' })).toBeInTheDocument();
+      expect(screen.queryByRole('complementary', { name: '任务详情' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: '写周报' }));
+      expect(screen.getByRole('complementary', { name: '清单栏' })).toBeInTheDocument();
+      expect(screen.getByRole('complementary', { name: '任务详情' })).toBeInTheDocument();
+    });
+
     it('隐藏已完成开关立即生效并持久化到 moji-ui-prefs（D8）', async () => {
       seedStore({
         todos: [
@@ -606,6 +860,21 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
 
       await user.click(screen.getByRole('button', { name: '显示已完成分组' }));
       expect(screen.getByRole('button', { name: '已完成 (1)' })).toBeInTheDocument();
+    });
+
+    it('重挂载时 hiddenCompleted 偏好从 moji-ui-prefs 还原（刷新现场）', () => {
+      localStorage.setItem('moji-ui-prefs', JSON.stringify({ hiddenCompleted: true }));
+      seedStore({
+        todos: [
+          makeTodo({ id: 't1', title: '已完任务', status: 'completed' }),
+          makeTodo({ id: 't2', title: '进行中' }),
+        ],
+      });
+      renderTodos();
+
+      expect(screen.queryByRole('button', { name: '已完成 (1)' })).not.toBeInTheDocument();
+      expect(screen.getByText('进行中')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '显示已完成分组' })).toBeInTheDocument();
     });
   });
 });

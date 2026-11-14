@@ -274,7 +274,7 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
                     onClick={startCreate}
                     className="w-full text-left px-3 py-1.5 text-sm text-ink-700 dark:text-ink-200 hover:bg-paper-dark/60 dark:hover:bg-ink-700/60 transition-colors"
                   >
-                    新建清单
+                    新建空白清单
                   </button>
                   <button
                     type="button"

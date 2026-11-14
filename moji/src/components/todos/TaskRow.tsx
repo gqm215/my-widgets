@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, ChevronDown, ChevronRight, RotateCcw, Trash2 } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Flag, RotateCcw, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { cn } from '@/lib/utils';
 import { isOverdue } from '@/utils/todoFilters';
@@ -17,10 +17,11 @@ export interface TaskRowProps {
 }
 
 /**
- * 任务行（D4/D11）：勾选 + 标题 + 截止日期（逾期红色）+ 子任务折叠。
+ * 任务行（D4/D11）：勾选 + 标题 + 优先级小旗（高/中优，仅展示）+ 截止日期（逾期红色）+ 子任务折叠。
  * - completed 行可勾回进行中；abandoned 行用「恢复」替代勾选框（restoreTodo）
  * - 子任务仅一层，缩进展示在父行下方，删除按钮 hover 显
  * - 点击标题选中任务，交由详情栏（B2-T2 填内容）
+ * - 行内优先级/日期为纯展示（B2-T3 打磨）：改优先级走详情栏，不提供行内直点
  */
 export function TaskRow({
   todo,
@@ -39,6 +40,8 @@ export function TaskRow({
   const abandoned = todo.status === 'abandoned';
   const overdue = isOverdue(todo, today);
   const doneSubtasks = subtasks.filter((st) => st.status === 'completed').length;
+  /** B2-T3 打磨：行内优先级小旗（仅高/中优展示，低/无优不添噪）；只展示，直点改优先级在详情栏 */
+  const showPriorityFlag = todo.priority === 'high' || todo.priority === 'medium';
 
   return (
     <div
@@ -102,15 +105,31 @@ export function TaskRow({
             </span>
           </button>
 
-          {(todo.dueDate || subtasks.length > 0) && (
+          {(showPriorityFlag || todo.dueDate || subtasks.length > 0) && (
             <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {showPriorityFlag && (
+                <span className="flex items-center">
+                  <Flag
+                    aria-hidden="true"
+                    strokeWidth={2}
+                    className={cn(
+                      'w-3 h-3',
+                      todo.priority === 'high' ? 'text-vermilion' : 'text-rattan'
+                    )}
+                  />
+                  <span className="sr-only">
+                    {todo.priority === 'high' ? '高优先级' : '中优先级'}
+                  </span>
+                </span>
+              )}
               {todo.dueDate && (
                 <span
                   className={cn(
-                    'text-xs',
+                    'flex items-center gap-1 text-xs',
                     overdue ? 'text-vermilion font-medium' : 'text-ink-400 dark:text-ink-300',
                   )}
                 >
+                  <CalendarDays aria-hidden="true" strokeWidth={1.5} className="w-3 h-3" />
                   截止 {todo.dueDate}
                 </span>
               )}

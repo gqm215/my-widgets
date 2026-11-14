@@ -81,7 +81,7 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 
 ### 4.3 `src/test/fixtures.ts`
 
-`makeNote / makeMemo / makeTodo / makeEvent / makeTag`（参数为 `Partial<T>` 覆盖，自动生成唯一 id，基准时间 `2025-06-02T09:00:00.000Z`）；`emptyState()`、`seedState(partial)`。
+`makeNote / makeMemo / makeTodo / makeList / makeEvent / makeTag`（参数为 `Partial<T>` 覆盖，自动生成唯一 id，基准时间 `2025-06-02T09:00:00.000Z`）；`emptyState()`、`seedState(partial)`。
 
 约定：测试固定用基准时间与显式 id，不依赖当前时钟；需要「当前时间」时用 `vi.useFakeTimers()` + `vi.setSystemTime()`。
 
@@ -107,10 +107,12 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 | `utils/search` | 四类命中、大小写、标题优先排序、limit、空查询、摘要清洗 |
 | `utils/calendar` | 分桶、时长块 top/height（最小 24）、跨小时、循环展开（日/周/月）、区间边界 |
 | `utils/report` | 周范围（周一 00:00 ~ 周日 23:59:59.999）、偏移周、截断 60/61 字符、空报告 Markdown |
+| `utils/todoFilters` | 今天/最近7天（未来7天+已逾期）/收集箱成员资格、逾期判定、无日期/跨周边界、abandoned 排除、顶层任务过滤 |
 | `store` | 增删改、`snapshot`、`updateTag` 改名级联、`deleteTag` 清理、`toggleTodo/updateTodo` 的 completedAt |
 | `hooks` | 主题默认/持久化、媒体查询变化、防抖清理 |
 | `ui/Modal` | 焦点陷阱、初始焦点、归还焦点、ESC/遮罩、`aria-labelledby`、open=false 不渲染 |
 | `ui/Toast` | 类型样式、3s 自动消失、手动关闭、同屏最多 3 条、越界使用抛错 |
+| `components/todos` | 三栏响应式（宽屏常驻/窄屏抽屉/遮罩关闭/切宽屏收起）、`?list=/?task=` 还原与清参、清单增删改名与级联文案、逾期红组与折叠分组、空态三分、内联添加、详情编辑双态、prefs 开关与还原 |
 | 页面 | 空状态、主流程、校验、筛选/排序、`?new=1`、`?date=`、翻周、导入导出、移动端抽屉 |
 | App | 路由表完整、布局壳、移动端菜单/新建入口 |
 
@@ -121,7 +123,8 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 - [ ] 今日：统计卡与列表一致；勾选待办即时反映；「在日历中查看」跳转带日期。
 - [ ] 笔记：新建→输入→自动保存（刷新后仍在）；标签添加/移除；收藏排序；删除确认；移动端列表↔编辑器切换。
 - [ ] 备忘：回车添加、Shift+回车换行；转待办后原备忘消失；转日程弹窗校验；删除确认。
-- [ ] 待办：状态/优先级筛选、三种排序；新建弹窗 ESC/点遮罩关闭；删除确认。
+- [ ] 待办：三栏宽屏并排（未选中详情时列表居中）；内联回车创建；优先级筛选与三种排序；清单新建/改名/删除；详情编辑与放弃/恢复；删除确认（父删级联子任务、删清单任务移收集箱）。
+- [ ] 待办三栏（B2 增补）：窄屏清单栏抽屉与详情抽屉（点遮罩关闭；切到宽屏抽屉自动收起）；`/todos?list=work&task=xxx` 刷新后还原现场、非法参数回落收集箱；切换清单时选中任务的保留/清除；删除当前查看清单后视图回落收集箱且任务保留；隐藏已完成开关刷新后保持；导出 JSON 中不含视图偏好（`moji-ui-prefs` 不进导出）。
 - [ ] 日程：新建全天/时段；结束早于开始被拦截；编辑已有日程；重复日程在日历/今日按周期出现；删除确认。
 - [ ] 日历：月/周切换、前后翻月、今天；选日期看详情；移动端详情抽屉；`/calendar?date=YYYY-MM-DD` 定位。
 - [ ] 周报：翻上一周/下一周、未来周禁用；导出 Markdown 文件名与内容对应。
@@ -151,3 +154,18 @@ setMediaQuery(query, matches)       // 视口/主题切换（re-export 自 setup
 3. 修 bug：先写一个能复现的失败用例，再修复（回归测试永久保留）。
 4. 覆盖率排除项、门槛变更需要在本文件记录理由；只允许因「文件不再含业务逻辑」而调整。
 5. 每次结构调整后跑 `npm run verify` 与 `npm run build`，确保门禁与产物同时健康。
+
+## 10. 批次用例清单 · B2 待办三栏重构（2026-11）
+
+> B2 三个验收维度（三栏响应式、URL 同步、级联 UI）的用例落点对照。批次收尾后新增行为仍按第 6 节规则补测。
+
+| 行为域 | 用例落点 | 覆盖内容 |
+|---|---|---|
+| `viewKeys` 纯函数 | `src/components/todos/__tests__/viewKeys.test.ts` | `?list=` 缺失/非法/已删回落 inbox；`?task=` 空白/不存在/子任务回落无选中；首尾空白裁剪 |
+| 三栏响应式 | `src/pages/__tests__/Todos.test.tsx` | 宽屏清单栏+详情栏常驻（三栏并排）；窄屏清单栏抽屉开关与遮罩关闭；窄屏详情抽屉（关闭按钮/遮罩均清 `?task=`）；窄屏开抽屉切宽屏自动收起 |
+| URL 同步 `?list=` | 同上 | `?list=today/bogus` 初始化与回落写回；点清单栏切换写参；`?new=1` 聚焦内联添加并清参；当前清单被删除回落收集箱并写回 `list=inbox` |
+| URL 同步 `?task=` | 同上 | `?task=` 还原选中渲染详情；指向不存在任务/子任务清参；切视图选中不属于新视图清参、属于则保留；删除选中任务清参 + 级联文案 |
+| 清单栏（ListRail） | 同上 | 新建（回车创建默认墨灰/Esc 取消/空名不创建）；改名（回车保存/Esc 取消/空名视为取消）；删除确认文案「任务移入收集箱」且任务保留；智能清单角标只计 active 顶层；「+」菜单空白清单入口 + 模板禁用项 + Esc/外点关闭 |
+| 列表区（TaskList/TaskRow） | 同上 | 内联回车连续创建（收集箱无 listId、清单视图归属当前清单、空标题不落库）；逾期红组置顶；已完成/已放弃折叠分组默认收起与展开；勾选完成/勾回；放弃任务进入折叠分组；优先级筛选（含无优档）与筛空空态；三种排序（优先级序/截止沉底）；进行中全隐藏空态；行内优先级小旗（高/中优 + sr-only 文本）与日期图标纯展示 |
+| 详情（TaskDetail） | `src/components/todos/__tests__/TaskDetail.test.tsx` + 页面接线 | 标题 blur/Enter/Esc/空标题；截止日期写入/清空；优先级 4 档；描述编辑/预览双态（GFM/全要素渲染/清空移除字段/失焦保存）；子任务增删勾；放弃/恢复/标记为进行中；子任务受限展示；提醒占位；页面级删除确认与 Toast |
+| prefs（D8） | `src/pages/__tests__/Todos.test.tsx` | `hiddenCompleted` 开关立即生效并写 `moji-ui-prefs`；重挂载从 localStorage 还原 |

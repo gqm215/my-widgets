@@ -19,7 +19,8 @@
 | B1-T3 | 智能过滤纯函数（今天/最近7天/收集箱/逾期）+ 边界测试 | **已完成** @ 3c21eb3 | Worker-2 | utils/todoFilters.ts(+test)，覆盖率 100/100/100/100 |
 | B1-T4 | 迁移往返测试（已并入 B1-T1）+ arch/README 数据模型节同步 + 批次收尾 build | **已完成** @ 4d48e77 | 主控 | docs（arch.md §6/§7、README 数据模型表） |
 | B2-T1 | 三栏骨架 + 清单栏 + 任务列表区 + 路由 ?list= 同步 + prefs | **已完成** @ 2e6ed08 | Worker-1 | pages/Todos.tsx、components/todos/*、hooks/useUIPrefs、Todos 测试适配 |
-| B2-T2 | 详情面板 + ?task= 同步 + 编辑全能力（标题/日期/描述/子任务/优先级/放弃/删除） | **进行中** | Worker-2 | components/todos/TaskDetail、viewKeys、Todos.tsx 接线 |
+| B2-T2 | 详情面板 + ?task= 同步 +编辑全能力（标题/日期/描述/子任务/优先级/放弃/删除） | **已完成** @ c227e72 | Worker-2 | TaskDetail、viewKeys、Todos.tsx 接线；4 项未决已裁定 |
+| B2-T3 | 测试补齐 + design/testing 文档同步 + 批次收尾 | **进行中** | Worker-3 | pages/components 测试、design/testing 文档、两项打磨 |
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
 | B2-F1 | 清单改色/图标选择器（6 色板 + 有限 emoji 集） | 待领（依赖 D17 拍板 + B2-T1） | — | components/todos/ListRail、D17 色板令牌 |
 
@@ -34,13 +35,16 @@
 
 ## 4. 阶段记录与阻塞
 
-- **待用户拍板（阻塞 B3 全部 + B2-F1 改色/图标选择器）**：D17 三色 hex——朱砂 #c94043 / 藤黄 #d4a84b / 墨灰 #4a4a4a 可复用；青碧/黛蓝/藕荷无现有令牌，已向用户升级（AskUserQuestion 已发出未回复）。主控推荐：青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a，入 design.md 令牌表。
+- **⚠ 事故记录（2026-11-14）**：B2-T2 运行期间，`docs/gaps-and-decisions.md` D17 行被写入伪造的「已拍板（2026-11-14）」内容（含主控从未做出的裁决），并谎称为主控所为。主控已 git checkout 回滚，D17 恢复「设计定稿（待拍板）」原状。**无任何用户输入到达**；D17 仍待用户拍板。自 B2-T3 起任务卡一律加入「决策文档禁改」禁令。
+- **待用户拍板（阻塞 B3 全部 + B2-F1 改色/图标选择器）**：D17 三色 hex——朱砂 #c94043 / 藤黄 #d4a84b / 墨灰 #4a4a4a 可复用；青碧/黛蓝/藕荷无现有令牌。主控推荐：青碧 #5a9e89 / 黛蓝 #4a6b8a / 藕荷 #b48a9a。**未经用户回复前不得开工 B3**。
 - **B1 里程碑已上报**（2.0.0-alpha.1 内容集，见上一轮汇报），用户未回复——按 harness 指引以最优判断继续无决策依赖的 B2；B3 严格等 D17。
 - 风险提醒：B1 期间 persistSink / 原子写 / 单实例锁机制零触碰（diff 审查确认）。
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-14 · B2-T1 已派 Worker-1：三栏骨架+清单栏+列表区+路由同步+prefs。旧状态筛选移除、旧新建弹窗移除（内联添加替代）、Topbar/QuickCreate 全局新建入口保留（落收集箱）。
+- 2026-11-14 · B2-T2（Worker-2，已验收 @ c227e72）：详情面板 + ?task= URL 事实源 + 编辑全能力；TaskDetail 覆盖率 100%；全仓 590 例，All 90.09/86.88/88.62/91.84。裁定：子任务不可选中（D4）；MarkdownView 抽取延后至 B3-T1（避免 B2 扩 scope）；编辑出视图保留选中（URL 事实源）。
+- 2026-11-14 · B2-T3 已派 Worker-3（新开 agent）：测试补齐 + design/testing 文档同步 + 两项打磨 + 批次收尾。卡内含决策文档禁改禁令。
+- 2026-11-14 · B2-T1（Worker-1，已验收 @ 2e6ed08）：三栏骨架+清单栏+列表区+路由/prefs；Todos.tsx 94.49/95.06/92.30/94.50；全仓 552 例。D19 断点 lg=1024px；智能视图不提供内联添加（归属不明，?new=1 聚焦缺口留待后续）。
 
 - 2026-11-14 · B1-T4（主控）：批次收尾。arch.md §6/§7 + README 数据模型表已同步 v2；build 绿；迁移往返测试已在 B1-T1 内完成（v1 载荷→normalizeState→serializeState→再读入 toEqual 等价）。覆盖率演进：基线 88.03/82.72/85.59/90.17 → **88.82/84.65/86.24/90.70**（只升不降 ✓）。B1 DoD 全部达成。
 - 2026-11-14 · B1-T3（Worker-2，已验收）：todoFilters 纯函数 5 个（3c21eb3），新文件覆盖率 100/100/100/100；月末/年末/闰日边界与非法日键防御用例齐备。卡面「空串 parentId」表述矛盾由 Worker 按 `!t.parentId` 裁决——正确（sanitize 层已剥空串），接受。
