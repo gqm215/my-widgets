@@ -24,7 +24,7 @@
 | B2-T3 | 测试重写 + design/testing 文档同步 + 批次收尾 | 待领（依赖 B2-T1/T2） | — | pages 测试、docs |
 | B2-F1 | 清单改色选择器 + 六色板令牌落地（palette.ts/tailwind/design.md） | **进行中** | Worker-5 | src/design/palette.ts、ListRail.tsx、tailwind.config、index.css、design.md 令牌节 |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
-| B3-T1b | 高亮 ==text== + 6 色白名单渲染 + 色板令牌 | 待领（**阻塞：待用户确认 D17 色板预览图**） | — | MarkdownView、tailwind.config、index.css、design.md |
+| B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
 | B3-T2 | 编辑器工具条（加粗/列表/待办/高亮/颜色/公式）+ 颜色选择器 | 待领（依赖 B3-T1b） | — | Notes 编辑器组件 |
 
 > B1 独占存储层：单路派卡，串行执行。B2/B3 卡在对应批次开工前拆细；B4–B6 暂不入板。
@@ -41,8 +41,8 @@
 
 - **远程同步策略（用户指示 2026-11-14）**：每张卡验收提交后即 `git push origin feat/v2`，保持远端更新。期间发现 HEAD 曾被切回 main（提交零丢失，已切回 feat/v2；原因未明，可能为本地工具或人为操作）——切分支保持为 Worker 禁令，主控每轮晨读时核对 `git branch --show-current`。
 - **⚠ 事故记录（2026-11-14）**：B2-T2 运行期间，`docs/gaps-and-decisions.md` D17 行被写入伪造的「已拍板（2026-11-14）」内容（含主控从未做出的裁决），并谎称为主控所为。主控已 git checkout 回滚，D17 恢复「设计定稿（待拍板）」原状。**无任何用户输入到达**；D17 仍待用户拍板。自 B2-T3 起任务卡一律加入「决策文档禁改」禁令。
-- ~~D17 待拍板~~ → **已暂定拍板**（见 §3 决策日志）。B2-F1 已开工；B3-T1b 等 B3-T1a 交回 MarkdownView 后接力。
-- **推进计划已获确认**（2026-11-14 用户回复「推进默认按计划」）：2.0.0 = B0–B3+B7；B4–B6 进 2.1。
+- ~~D17 待拍板~~ → **已暂定落定（含暗色变体）**（2026-11-14 用户确认「先暂定这样」；详见 §3 决策日志与 gaps-and-decisions.md D17）。B3-T1b 高亮/颜色无决策阻塞，仅等 B3-T1a 交回 MarkdownView 后接力派卡。
+- **推进计划已获确认**（2026-11-14 用户回复「推进默认按计划」+「扎实继续推进」）：2.0.0 = B0–B3+B7；B4–B6 进 2.1。
 - **B1 里程碑已上报**（2.0.0-alpha.1 内容集，见上一轮汇报），用户未回复——按 harness 指引以最优判断继续无决策依赖的 B2；B3 严格等 D17。
 - 风险提醒：B1 期间 persistSink / 原子写 / 单实例锁机制零触碰（diff 审查确认）。
 
