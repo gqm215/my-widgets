@@ -610,7 +610,7 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       const lists = useAppStore.getState().lists;
       expect(lists).toHaveLength(1);
       expect(lists[0].name).toBe('工作');
-      expect(lists[0].color).toBe('#8a8a8a');
+      expect(lists[0].color).toBe('#4a4a4a');
       expect(await screen.findByText('清单已创建')).toBeInTheDocument();
       expect(screen.queryByRole('textbox', { name: '新清单名称' })).not.toBeInTheDocument();
 
@@ -618,6 +618,41 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       await user.type(screen.getByRole('textbox', { name: '新清单名称' }), '取消的{Escape}');
       expect(useAppStore.getState().lists).toHaveLength(1);
       expect(screen.queryByRole('textbox', { name: '新清单名称' })).not.toBeInTheDocument();
+    });
+
+    it('新建清单：六色选择器默认墨灰，点选后按所选色创建', async () => {
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '新建清单' }));
+      const swatches = screen.getByRole('group', { name: '新清单颜色' });
+      expect(within(swatches).getAllByRole('button')).toHaveLength(6);
+      expect(within(swatches).getByRole('button', { name: '墨灰' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      await user.click(within(swatches).getByRole('button', { name: '青碧' }));
+      expect(within(swatches).getByRole('button', { name: '青碧' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(within(swatches).getByRole('button', { name: '墨灰' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+
+      await user.type(screen.getByRole('textbox', { name: '新清单名称' }), '工作{Enter}');
+      const lists = useAppStore.getState().lists;
+      expect(lists).toHaveLength(1);
+      expect(lists[0].color).toBe('#5a9e89');
+      // 再次新建时选择器回到默认墨灰
+      await user.click(screen.getByRole('button', { name: '新建清单' }));
+      expect(
+        within(screen.getByRole('group', { name: '新清单颜色' })).getByRole('button', {
+          name: '墨灰',
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('「+」菜单：空白清单入口可用、模板入口为禁用态', async () => {
@@ -699,6 +734,72 @@ describe('Todos 页 · 三栏重构（B2-T1）', () => {
       await user.type(screen.getByRole('textbox', { name: '新清单名称' }), '   {Enter}');
       expect(useAppStore.getState().lists).toHaveLength(0);
       expect(screen.getByRole('textbox', { name: '新清单名称' })).toBeInTheDocument();
+    });
+
+    it('清单改色：面板当前色高亮，点选即 updateList 并关闭（B2-F1）', async () => {
+      seedStore({ lists: [makeList({ id: 'l1', name: '工作', color: '#c94043' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      await user.click(screen.getByRole('button', { name: '改色清单「工作」' }));
+      const panel = screen.getByRole('group', { name: '改色清单「工作」' });
+      expect(within(panel).getAllByRole('button')).toHaveLength(6);
+      expect(within(panel).getByRole('button', { name: '改为朱砂' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+
+      await user.click(within(panel).getByRole('button', { name: '改为青碧' }));
+      expect(useAppStore.getState().lists[0].color).toBe('#5a9e89');
+      expect(screen.queryByRole('group', { name: '改色清单「工作」' })).not.toBeInTheDocument();
+      // 行色点随 list.color 更新
+      const row = screen.getByRole('button', { name: /工作（0 项待办）/ });
+      const dot = row.querySelector('span[aria-hidden="true"]');
+      expect(dot).toHaveStyle({ backgroundColor: 'rgb(90, 158, 137)' });
+    });
+
+    it('清单改色：Esc 与外点关闭，触发按钮可再次开合', async () => {
+      seedStore({ lists: [makeList({ id: 'l1', name: '工作' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      const trigger = screen.getByRole('button', { name: '改色清单「工作」' });
+      await user.click(trigger);
+      expect(screen.getByRole('group', { name: '改色清单「工作」' })).toBeInTheDocument();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('group', { name: '改色清单「工作」' })).not.toBeInTheDocument();
+
+      await user.click(trigger);
+      expect(screen.getByRole('group', { name: '改色清单「工作」' })).toBeInTheDocument();
+      // 外点关闭
+      await user.click(screen.getByRole('heading', { name: '收集箱' }));
+      expect(screen.queryByRole('group', { name: '改色清单「工作」' })).not.toBeInTheDocument();
+
+      // 触发按钮 toggle：再点一次收起
+      await user.click(trigger);
+      expect(screen.getByRole('group', { name: '改色清单「工作」' })).toBeInTheDocument();
+      await user.click(trigger);
+      expect(screen.queryByRole('group', { name: '改色清单「工作」' })).not.toBeInTheDocument();
+    });
+
+    it('清单改色：色板外存量颜色照常显示、面板不高亮且仅提供六色', async () => {
+      seedStore({ lists: [makeList({ id: 'l1', name: '导入清单', color: '#123456' })] });
+      const user = userEvent.setup();
+      renderTodos();
+
+      const row = screen.getByRole('button', { name: /导入清单（0 项待办）/ });
+      expect(row.querySelector('span[aria-hidden="true"]')).toHaveStyle({
+        backgroundColor: 'rgb(18, 52, 86)',
+      });
+
+      await user.click(screen.getByRole('button', { name: '改色清单「导入清单」' }));
+      const panel = screen.getByRole('group', { name: '改色清单「导入清单」' });
+      expect(within(panel).getAllByRole('button')).toHaveLength(6);
+      expect(within(panel).queryAllByRole('button', { pressed: true })).toHaveLength(0);
+
+      await user.click(within(panel).getByRole('button', { name: '改为墨灰' }));
+      expect(useAppStore.getState().lists[0].color).toBe('#4a4a4a');
     });
 
     it('删除清单：确认文案说明任务移入收集箱，任务本身不删（C1）', async () => {

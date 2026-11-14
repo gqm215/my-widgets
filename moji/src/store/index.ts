@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { AppState, List, Note, Memo, Todo, Event, Tag, Priority } from '@/types';
 import { loadState, saveState, generateId, nowISO } from '@/utils/storage';
+import { DEFAULT_LIST_COLOR } from '@/design/palette';
 
 export interface AppStore extends AppState {
   addNote: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => string;
@@ -327,7 +328,7 @@ export const useAppStore = create<AppStore>((set, get) => {
       const list: List = {
         id,
         name,
-        color: color ?? '#8a8a8a',
+        color: color ?? DEFAULT_LIST_COLOR,
         createdAt: nowISO(),
       };
       if (icon) list.icon = icon;

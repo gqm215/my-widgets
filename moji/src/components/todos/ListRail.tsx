@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarCheck, CalendarRange, Inbox, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarCheck, CalendarRange, Inbox, Palette, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { ConfirmDialog, Input, useToast } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { DEFAULT_LIST_COLOR, PALETTE_COLORS } from '@/design/palette';
 import { filterByList, filterInbox, filterNext7Days, filterToday } from '@/utils/todoFilters';
 import type { List, Todo } from '@/types';
 
@@ -17,12 +18,14 @@ export interface ListRailProps {
   onClose?: () => void;
 }
 
-/** D17 拍板前新建清单一律默认墨灰（B2-F1 补色板选择器） */
-const DEFAULT_LIST_COLOR = '#8a8a8a';
+/** 色板 swatch 选中态描边（纸白/墨底各配 ring 底色） */
+const SWATCH_RING =
+  'ring-2 ring-offset-1 ring-ink-400 dark:ring-ink-300 ring-offset-white dark:ring-offset-ink-800';
 
 /**
  * 清单栏（D7/D18）：智能清单三件套 + 用户清单 + 新建入口。
  * 角标 = 各视图 active 顶层任务数（completed/abandoned 不计入）。
+ * 色板六色唯一事实源见 src/design/palette.ts；新建默认墨灰，已有清单可改色。
  */
 export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: ListRailProps) {
   const addList = useAppStore((s) => s.addList);
@@ -32,27 +35,42 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
 
   const [creating, setCreating] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [newListColor, setNewListColor] = useState<string>(DEFAULT_LIST_COLOR);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<List | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [colorPanelId, setColorPanelId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const colorPanelRef = useRef<HTMLDivElement>(null);
 
   const countActive = (items: Todo[]) => items.filter((t) => t.status === 'active').length;
   const inboxCount = countActive(filterInbox(todos));
   const todayCount = countActive(filterToday(todos, today));
   const next7Count = countActive(filterNext7Days(todos, today));
 
-  // 「+」菜单：外点 / Esc 关闭
+  // 「+」菜单 / 改色面板：外点 / Esc 关闭（改色触发按钮自身不视为外点，保留 toggle 语义）
   useEffect(() => {
-    if (!menuOpen) return undefined;
+    if (!menuOpen && !colorPanelId) return undefined;
     const handlePointerDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Element;
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false);
+      }
+      if (
+        colorPanelId &&
+        colorPanelRef.current &&
+        !colorPanelRef.current.contains(target) &&
+        !(target instanceof Element && target.closest('[data-recolor-trigger]'))
+      ) {
+        setColorPanelId(null);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setColorPanelId(null);
+      }
     };
     document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
@@ -60,29 +78,37 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
       document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [menuOpen]);
+  }, [menuOpen, colorPanelId]);
 
   const startCreate = () => {
     setMenuOpen(false);
+    setColorPanelId(null);
     setCreating(true);
   };
 
   const cancelCreate = () => {
     setCreating(false);
     setNewListName('');
+    setNewListColor(DEFAULT_LIST_COLOR);
   };
 
   const handleCreate = () => {
     const name = newListName.trim();
     if (!name) return;
-    addList(name, DEFAULT_LIST_COLOR);
+    addList(name, newListColor);
     toast('success', '清单已创建');
     cancelCreate();
   };
 
   const startRename = (list: List) => {
+    setColorPanelId(null);
     setEditingId(list.id);
     setEditingName(list.name);
+  };
+
+  const toggleColorPanel = (list: List) => {
+    setMenuOpen(false);
+    setColorPanelId((prev) => (prev === list.id ? null : list.id));
   };
 
   const cancelRename = () => {
@@ -151,7 +177,7 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
             const count = countActive(filterByList(todos, list.id));
             const active = activeKey === list.id;
             return (
-              <li key={list.id} className="group">
+              <li key={list.id} className="group relative">
                 {editingId === list.id ? (
                   <Input
                     aria-label="清单名称"
@@ -165,6 +191,7 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
                     className="py-1 text-sm"
                   />
                 ) : (
+                  <>
                   <div
                     className={cn(
                       'flex items-center rounded-md pr-1 transition-colors duration-150',
@@ -198,8 +225,13 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
                         {count}
                       </span>
                     </button>
-                    {/* hover 显操作：行内改名 / 删除确认 */}
-                    <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
+                    {/* hover 显操作：行内改名 / 改色面板 / 删除确认 */}
+                    <div
+                      className={cn(
+                        'flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150',
+                        colorPanelId === list.id && 'opacity-100',
+                      )}
+                    >
                       <button
                         type="button"
                         onClick={() => startRename(list)}
@@ -207,6 +239,16 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
                         className="p-1.5 rounded text-ink-300 dark:text-ink-500 hover:text-ink-600 dark:hover:text-ink-200 hover:bg-paper-dark dark:hover:bg-ink-600 transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" strokeWidth={1.5} />
+                      </button>
+                      <button
+                        type="button"
+                        data-recolor-trigger
+                        onClick={() => toggleColorPanel(list)}
+                        aria-label={`改色清单「${list.name}」`}
+                        aria-expanded={colorPanelId === list.id}
+                        className="p-1.5 rounded text-ink-300 dark:text-ink-500 hover:text-ink-600 dark:hover:text-ink-200 hover:bg-paper-dark dark:hover:bg-ink-600 transition-colors"
+                      >
+                        <Palette className="w-3.5 h-3.5" strokeWidth={1.5} />
                       </button>
                       <button
                         type="button"
@@ -218,6 +260,34 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
                       </button>
                     </div>
                   </div>
+                  {colorPanelId === list.id && (
+                    <div
+                      ref={colorPanelRef}
+                      role="group"
+                      aria-label={`改色清单「${list.name}」`}
+                      className="absolute right-0 top-full mt-1 z-10 flex items-center gap-1.5 rounded-lg bg-white dark:bg-ink-800 shadow-paper-lg dark:shadow-none border border-black/[0.04] dark:border-white/[0.06] px-2 py-1.5 animate-scale-in"
+                    >
+                      {PALETTE_COLORS.map((color) => (
+                        <button
+                          key={color.key}
+                          type="button"
+                          title={color.name}
+                          aria-label={`改为${color.name}`}
+                          aria-pressed={list.color === color.hex}
+                          onClick={() => {
+                            updateList(list.id, { color: color.hex });
+                            setColorPanelId(null);
+                          }}
+                          className={cn(
+                            'w-4 h-4 rounded-full flex-shrink-0 transition-shadow hover:scale-110',
+                            list.color === color.hex && SWATCH_RING,
+                          )}
+                          style={{ backgroundColor: color.hex }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  </>
                 )}
               </li>
             );
@@ -228,18 +298,38 @@ export function ListRail({ todos, lists, activeKey, today, onSelect, onClose }: 
       <div className="mt-auto pt-3">
         <div className="brush-divider mb-3" aria-hidden="true" />
         {creating ? (
-          <Input
-            aria-label="新清单名称"
-            placeholder="新清单名称"
-            value={newListName}
-            autoFocus
-            onChange={(e) => setNewListName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-              if (e.key === 'Escape') cancelCreate();
-            }}
-            className="py-1.5 text-sm"
-          />
+          <div>
+            <Input
+              aria-label="新清单名称"
+              placeholder="新清单名称"
+              value={newListName}
+              autoFocus
+              onChange={(e) => setNewListName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate();
+                if (e.key === 'Escape') cancelCreate();
+              }}
+              className="py-1.5 text-sm"
+            />
+            {/* 六色选择：默认墨灰（palette.ts 唯一事实源），回车按所选色创建 */}
+            <div role="group" aria-label="新清单颜色" className="mt-2 flex items-center gap-1.5 px-0.5">
+              {PALETTE_COLORS.map((color) => (
+                <button
+                  key={color.key}
+                  type="button"
+                  title={color.name}
+                  aria-label={color.name}
+                  aria-pressed={newListColor === color.hex}
+                  onClick={() => setNewListColor(color.hex)}
+                  className={cn(
+                    'w-4 h-4 rounded-full flex-shrink-0 transition-shadow hover:scale-110',
+                    newListColor === color.hex && SWATCH_RING,
+                  )}
+                  style={{ backgroundColor: color.hex }}
+                />
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-1">
             <button

@@ -575,11 +575,11 @@ describe('useAppStore', () => {
   });
 
   describe('清单操作', () => {
-    it('addList 缺省 color 为 #8a8a8a 且不设置 icon', () => {
+    it('addList 缺省 color 为墨灰 #4a4a4a（palette.ts DEFAULT_LIST_COLOR）且不设置 icon', () => {
       const id = useAppStore.getState().addList('工作');
       const list = useAppStore.getState().lists.find((l) => l.id === id)!;
       expect(list.name).toBe('工作');
-      expect(list.color).toBe('#8a8a8a');
+      expect(list.color).toBe('#4a4a4a');
       expect(list.createdAt).toBe('2025-07-09T12:00:00.000Z');
       expect('icon' in list).toBe(false);
       expect(saveState).toHaveBeenCalled();
