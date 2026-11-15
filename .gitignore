@@ -34,3 +34,6 @@ src-tauri/gen
 
 # Agent tooling cache
 .mimosa/
+
+# Tooling screenshots scratch
+.screenshots/
