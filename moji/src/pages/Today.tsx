@@ -45,7 +45,7 @@ export default function Today() {
         <img
           src="./scenes/mountains-hero.svg"
           alt="水墨山水"
-          className="w-full h-40 md:h-56 object-cover transition-transform duration-[6000ms] ease-out group-hover:scale-105"
+          className="w-full h-40 md:h-56 object-cover transition-transform duration-[6000ms] ease-out group-hover:scale-105 dark:brightness-[0.8]"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />

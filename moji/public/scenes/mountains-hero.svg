@@ -1,64 +1,125 @@
-<svg width="1200" height="320" viewBox="0 0 1200 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+<svg width="1920" height="480" viewBox="0 0 1920 480" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" role="img" aria-label="水墨山水：远山如黛，孤舟横江">
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f6efe2"/>
-      <stop offset="55%" stop-color="#ebe0c6"/>
-      <stop offset="100%" stop-color="#dfd1b0"/>
+    <linearGradient id="hSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8f1e2"/>
+      <stop offset="0.4" stop-color="#f2e7cc"/>
+      <stop offset="0.66" stop-color="#eadcb6"/>
+      <stop offset="1" stop-color="#dccaa2"/>
     </linearGradient>
-    <linearGradient id="inkDark" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1a1a1a" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#1a1a1a" stop-opacity="0.5"/>
+    <radialGradient id="hHalo">
+      <stop offset="0" stop-color="#c94043" stop-opacity="0.26"/>
+      <stop offset="0.45" stop-color="#c94043" stop-opacity="0.10"/>
+      <stop offset="0.78" stop-color="#c94043" stop-opacity="0.03"/>
+      <stop offset="1" stop-color="#c94043" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hSun" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#cc4a40"/>
+      <stop offset="0.72" stop-color="#b23a2e"/>
+      <stop offset="1" stop-color="#a6372a"/>
+    </radialGradient>
+    <linearGradient id="hFar" gradientUnits="userSpaceOnUse" x1="0" y1="218" x2="0" y2="352">
+      <stop offset="0" stop-color="#6a6a6a" stop-opacity="0.36"/>
+      <stop offset="0.55" stop-color="#6a6a6a" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#6a6a6a" stop-opacity="0.04"/>
     </linearGradient>
-    <linearGradient id="inkMid" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#3a3a3a" stop-opacity="0.65"/>
-      <stop offset="100%" stop-color="#3a3a3a" stop-opacity="0.35"/>
+    <linearGradient id="hMid" gradientUnits="userSpaceOnUse" x1="0" y1="258" x2="0" y2="352">
+      <stop offset="0" stop-color="#454545" stop-opacity="0.48"/>
+      <stop offset="0.6" stop-color="#454545" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#454545" stop-opacity="0.06"/>
     </linearGradient>
-    <linearGradient id="inkLight" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#6a6a6a" stop-opacity="0.45"/>
-      <stop offset="100%" stop-color="#6a6a6a" stop-opacity="0.2"/>
+    <linearGradient id="hMain" gradientUnits="userSpaceOnUse" x1="0" y1="132" x2="0" y2="352">
+      <stop offset="0" stop-color="#2e2e2e" stop-opacity="0.74"/>
+      <stop offset="0.55" stop-color="#2e2e2e" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2e2e2e" stop-opacity="0.10"/>
     </linearGradient>
-    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#d9c9a3" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#c5b287" stop-opacity="0.8"/>
+    <linearGradient id="hNear" gradientUnits="userSpaceOnUse" x1="0" y1="276" x2="0" y2="334">
+      <stop offset="0" stop-color="#1a1a1a" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#1a1a1a" stop-opacity="0.50"/>
     </linearGradient>
-    <filter id="softBlur"><feGaussianBlur stdDeviation="2.5"/></filter>
-    <filter id="mistBlur"><feGaussianBlur stdDeviation="6"/></filter>
+    <linearGradient id="hWater" gradientUnits="userSpaceOnUse" x1="0" y1="332" x2="0" y2="480">
+      <stop offset="0" stop-color="#d7c69d" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="#c3ae80" stop-opacity="0.80"/>
+    </linearGradient>
+    <linearGradient id="hMist" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1920" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.14" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="0.86" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="hSoften" x="-5%" y="-60%" width="110%" height="220%">
+      <feGaussianBlur stdDeviation="0.9"/>
+    </filter>
+    <clipPath id="hMainClip">
+      <path d="M0,346 C170,340 320,332 440,310 C520,296 570,276 612,252 C632,242 646,240 658,232 C700,204 730,164 756,132 C770,134 786,152 812,186 C836,216 864,238 896,248 C936,260 975,282 1015,306 C1065,324 1112,320 1160,300 C1215,276 1275,246 1340,226 C1372,216 1394,213 1410,218 C1444,228 1494,262 1554,298 C1624,338 1706,346 1800,346 L1920,344 L1920,352 L0,352 Z"/>
+    </clipPath>
   </defs>
 
-  <rect width="1200" height="320" fill="url(#sky)"/>
+  <!-- 天空：暖纸色 -->
+  <rect width="1920" height="480" fill="url(#hSky)"/>
 
-  <ellipse cx="200" cy="80" rx="280" ry="20" fill="#fff" opacity="0.55" filter="url(#mistBlur)"/>
-  <ellipse cx="900" cy="100" rx="320" ry="22" fill="#fff" opacity="0.4" filter="url(#mistBlur)"/>
+  <!-- 朱砂日 + 柔和光晕 -->
+  <circle cx="1272" cy="174" r="104" fill="url(#hHalo)"/>
+  <circle cx="1272" cy="174" r="42" fill="url(#hSun)"/>
+  <circle cx="1272" cy="174" r="42" fill="none" stroke="#8f3226" stroke-width="1" opacity="0.4"/>
 
-  <path d="M0,180 L60,140 L130,165 L210,120 L280,150 L340,110 L410,145 L470,100 L520,135 L580,90 L640,130 L700,95 L770,135 L830,105 L900,140 L970,115 L1040,150 L1100,125 L1200,160 L1200,320 L0,320 Z"
-        fill="url(#inkLight)" filter="url(#softBlur)"/>
+  <!-- 远山（淡墨） -->
+  <path d="M0,252 C110,240 210,246 320,254 C430,262 520,244 630,238 C740,232 850,250 960,254 C1070,258 1160,244 1260,238 C1350,232 1450,250 1560,254 C1670,258 1800,248 1920,242 L1920,352 L0,352 Z" fill="url(#hFar)"/>
 
-  <path d="M0,220 L80,180 L150,210 L240,160 L310,195 L390,150 L450,185 L520,140 L600,180 L670,145 L750,185 L830,155 L910,195 L990,165 L1070,200 L1150,170 L1200,195 L1200,320 L0,320 Z"
-        fill="url(#inkMid)" filter="url(#softBlur)"/>
+  <!-- 云雾带一（远山与中山之间） -->
+  <rect x="0" y="248" width="1920" height="44" fill="url(#hMist)" opacity="0.22" filter="url(#hSoften)"/>
 
-  <path d="M0,265 L100,235 L180,255 L260,220 L340,250 L430,215 L510,245 L590,210 L680,245 L760,215 L850,250 L940,220 L1020,250 L1100,225 L1200,255 L1200,320 L0,320 Z"
-        fill="url(#inkDark)" filter="url(#softBlur)"/>
+  <!-- 中远山（次淡墨） -->
+  <path d="M0,302 C140,284 300,262 470,262 C570,262 650,286 770,294 C890,302 990,298 1090,288 C1190,278 1250,266 1350,266 C1450,266 1530,280 1630,284 C1730,288 1830,296 1920,302 L1920,352 L0,352 Z" fill="url(#hMid)"/>
 
-  <rect x="0" y="280" width="1200" height="40" fill="url(#water)"/>
+  <!-- 主峰群（浓墨）：主峰高耸带肩部起伏 + 次峰错落 -->
+  <path d="M0,346 C170,340 320,332 440,310 C520,296 570,276 612,252 C632,242 646,240 658,232 C700,204 730,164 756,132 C770,134 786,152 812,186 C836,216 864,238 896,248 C936,260 975,282 1015,306 C1065,324 1112,320 1160,300 C1215,276 1275,246 1340,226 C1372,216 1394,213 1410,218 C1444,228 1494,262 1554,298 C1624,338 1706,346 1800,346 L1920,344 L1920,352 L0,352 Z" fill="url(#hMain)"/>
 
-  <g opacity="0.6" filter="url(#softBlur)">
-    <path d="M520,278 Q540,276 560,278" stroke="#5a5a5a" stroke-width="1" fill="none"/>
-    <path d="M580,282 Q610,280 640,282" stroke="#5a5a5a" stroke-width="1" fill="none"/>
-    <path d="M660,278 Q690,276 720,278" stroke="#5a5a5a" stroke-width="1" fill="none"/>
+  <!-- 点苔（裁切于主峰轮廓内） -->
+  <g clip-path="url(#hMainClip)" fill="#1a1a1a">
+    <ellipse cx="748" cy="136" rx="2.4" ry="1.4" opacity="0.28"/>
+    <ellipse cx="764" cy="138" rx="2" ry="1.2" opacity="0.24"/>
+    <ellipse cx="736" cy="142" rx="2" ry="1.2" opacity="0.22"/>
+    <ellipse cx="1392" cy="216" rx="2.2" ry="1.3" opacity="0.26"/>
+    <ellipse cx="1406" cy="220" rx="1.8" ry="1.1" opacity="0.22"/>
   </g>
 
-  <g transform="translate(560,262)" opacity="0.85">
-    <path d="M0,12 L4,4 L8,12 L10,8 L14,14 L0,14 Z" fill="#1a1a1a"/>
-    <line x1="14" y1="14" x2="28" y2="14" stroke="#1a1a1a" stroke-width="1"/>
+  <!-- 云雾带二（山脚与水面之间） -->
+  <rect x="0" y="300" width="1920" height="44" fill="url(#hMist)" opacity="0.15" filter="url(#hSoften)"/>
+
+  <!-- 近景坡岸（浓墨，左右两端入水） -->
+  <path d="M0,290 C60,282 120,278 180,284 C260,292 330,312 400,322 C450,329 495,332 535,332 L0,332 Z" fill="url(#hNear)"/>
+  <path d="M1920,294 C1856,286 1796,286 1736,294 C1666,304 1606,318 1546,327 C1502,333 1460,332 1425,332 L1920,332 Z" fill="url(#hNear)"/>
+
+  <!-- 水面（半透明，山脚自然成倒影） -->
+  <rect x="0" y="332" width="1920" height="148" fill="url(#hWater)"/>
+  <path d="M520,332.5 H1420" stroke="#464646" stroke-width="1" opacity="0.14"/>
+
+  <!-- 倒影笔触 -->
+  <g stroke="#1a1a1a" stroke-linecap="round" fill="none">
+    <path d="M700,346 H820" stroke-width="3" opacity="0.13"/>
+    <path d="M730,358 H810" stroke-width="2.5" opacity="0.09"/>
+    <path d="M680,372 H780" stroke-width="2.5" opacity="0.07"/>
+    <path d="M1360,346 H1450" stroke-width="3" opacity="0.11"/>
+    <path d="M1330,360 H1430" stroke-width="2.5" opacity="0.08"/>
+    <path d="M440,344 H540" stroke-width="3" opacity="0.10"/>
   </g>
+  <ellipse cx="1260" cy="338" rx="24" ry="1.4" fill="#1a1a1a" opacity="0.18"/>
 
-  <ellipse cx="150" cy="290" rx="60" ry="3" fill="#fff" opacity="0.5"/>
-  <ellipse cx="450" cy="295" rx="80" ry="3" fill="#fff" opacity="0.4"/>
-  <ellipse cx="800" cy="290" rx="70" ry="3" fill="#fff" opacity="0.5"/>
-  <ellipse cx="1050" cy="295" rx="60" ry="3" fill="#fff" opacity="0.4"/>
+  <!-- 水面留白 -->
+  <ellipse cx="250" cy="356" rx="85" ry="2" fill="#ffffff" opacity="0.38"/>
+  <ellipse cx="960" cy="364" rx="110" ry="2.4" fill="#ffffff" opacity="0.32"/>
+  <ellipse cx="1520" cy="352" rx="75" ry="2" fill="#ffffff" opacity="0.36"/>
+  <ellipse cx="760" cy="384" rx="60" ry="1.8" fill="#ffffff" opacity="0.25"/>
 
-  <g transform="translate(1040,60)" opacity="0.92">
-    <circle cx="0" cy="0" r="22" fill="#a13e2d"/>
-    <circle cx="0" cy="0" r="22" fill="none" stroke="#7a2d20" stroke-width="0.8" opacity="0.6"/>
+  <!-- 孤舟：舟身弧线 + 船夫蓑笠 + 钓竿（泊于落日下方的水面线之上） -->
+  <g fill="#1a1a1a" opacity="0.92">
+    <path d="M1228,324 Q1240,331.5 1260,332 Q1280,331.5 1292,323 Q1282,329 1260,330 Q1238,329 1228,324 Z"/>
+    <path d="M1253,313 C1250,318 1249,324 1250,329.5 L1262,329.5 C1264,323 1263,317 1260,313 Z"/>
+    <path d="M1245,313 Q1256,301 1267,313 Q1256,309 1245,313 Z"/>
+  </g>
+  <g stroke="#1a1a1a" stroke-linecap="round" fill="none">
+    <path d="M1263,318 L1289,327" stroke-width="1.2" opacity="0.85"/>
+    <path d="M1289,327 L1289,331.5" stroke-width="0.8" opacity="0.6"/>
   </g>
 </svg>

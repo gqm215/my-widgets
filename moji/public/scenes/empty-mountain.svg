@@ -5,26 +5,47 @@
       <stop offset="70%" stop-color="#ebe0c6"/>
       <stop offset="100%" stop-color="#c5b287"/>
     </radialGradient>
-    <filter id="esoft"><feGaussianBlur stdDeviation="2"/></filter>
+    <radialGradient id="ehalo">
+      <stop offset="0" stop-color="#c94043" stop-opacity="0.24"/>
+      <stop offset="0.5" stop-color="#c94043" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#c94043" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="esun" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#cc4a40"/>
+      <stop offset="0.72" stop-color="#b23a2e"/>
+      <stop offset="1" stop-color="#a6372a"/>
+    </radialGradient>
+    <linearGradient id="emist" gradientUnits="userSpaceOnUse" x1="30" y1="0" x2="370" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.75" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
 
   <rect width="400" height="400" fill="url(#ecircle)"/>
 
-  <ellipse cx="200" cy="130" rx="180" ry="20" fill="#fff" opacity="0.6"/>
+  <!-- 云雾（横向渐隐，无模糊） -->
+  <rect x="30" y="118" width="340" height="22" fill="url(#emist)" opacity="0.5"/>
 
-  <path d="M40,220 L100,180 L160,210 L220,160 L280,200 L340,170 L380,200"
-        stroke="#6a6a6a" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.5" filter="url(#esoft)"/>
+  <!-- 远山（淡墨弧线） -->
+  <path d="M34,218 Q88,170 148,196 Q208,222 264,174 Q318,130 380,188"
+        stroke="#6a6a6a" stroke-width="13" stroke-linecap="round" fill="none" opacity="0.5"/>
 
-  <path d="M20,280 L90,240 L160,275 L240,220 L310,265 L380,235"
-        stroke="#3a3a3a" stroke-width="18" stroke-linecap="round" fill="none" opacity="0.75" filter="url(#esoft)"/>
+  <!-- 中山（次浓墨弧线） -->
+  <path d="M18,280 Q78,238 138,256 Q198,274 254,240 Q310,206 382,242"
+        stroke="#3a3a3a" stroke-width="17" stroke-linecap="round" fill="none" opacity="0.72"/>
 
-  <path d="M0,340 L80,310 L160,335 L240,295 L320,330 L400,300 L400,400 L0,400 Z"
-        fill="#1a1a1a" opacity="0.88" filter="url(#esoft)"/>
+  <!-- 近坡（浓墨） -->
+  <path d="M0,336 Q58,310 118,320 Q178,330 238,304 Q298,280 358,298 Q378,304 400,300 L400,400 L0,400 Z"
+        fill="#1a1a1a" opacity="0.85"/>
 
-  <ellipse cx="200" cy="360" rx="120" ry="3" fill="#fff" opacity="0.4"/>
+  <!-- 水面留白 -->
+  <ellipse cx="200" cy="360" rx="120" ry="2.6" fill="#ffffff" opacity="0.4"/>
 
-  <g transform="translate(310,90)" opacity="0.92">
-    <circle cx="0" cy="0" r="26" fill="#a13e2d"/>
-    <circle cx="0" cy="0" r="26" fill="none" stroke="#7a2d20" stroke-width="0.8" opacity="0.6"/>
-  </g>
+  <!-- 朱砂日 + 光晕 -->
+  <circle cx="308" cy="88" r="52" fill="url(#ehalo)"/>
+  <circle cx="308" cy="88" r="24" fill="url(#esun)"/>
+  <circle cx="308" cy="88" r="24" fill="none" stroke="#8f3226" stroke-width="0.8" opacity="0.4"/>
 </svg>
