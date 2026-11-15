@@ -29,6 +29,7 @@
 | B3-T2 | 编辑器工具条 + 快捷键（Notes + TaskDetail 描述编辑态） | **已完成** @ 4f4ecdf | Worker-6 | EditorToolbar、insertSyntax、Notes.tsx、TaskDetail.tsx |
 | B3-T3 | B3 批次文档收尾（README/design/testing/CHANGELOG + QA 矩阵） | **已完成** @ c2fb2a4 | Worker-6 | README.md、design.md、testing.md、CHANGELOG.md |
 | B7-T1 | Web 端手工 QA（浏览器自动化走查 20 条中可自动化项） | **已完成**（11 项自动化全过，详见 §5） | 主控 | 无代码改动 |
+| B7-P1 | 山水横幅重绘（用户反馈：意境好但清晰度差/粗糙） | **进行中** | Worker-7 | public/scenes/*、Today.tsx 横幅微调、index.css |
 | B7-T2 | 版本号 2.0.0 + CHANGELOG 定稿 + tag/Release | **已完成**（用户已确认发布；桌面 QA 完成、版本定稿、merge main、tag） | 主控 | package.json、CHANGELOG、git tag |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
