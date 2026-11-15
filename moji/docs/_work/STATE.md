@@ -8,7 +8,7 @@
 - 批次：**v2.0.0 已发布** 🎉——feat/v2 已合入 main（816ecf5）、tag `v2.0.0` 已推送、GitHub Actions Release 构建中（verify → Electron/Tauri 产物 → GitHub Release）。发布后进入阶段三迭代（修复卡 F1–F3 + 新批次拆卡）
 - 分支：`main`（HEAD 963fdb4；`feat/v2` 冻结于 v2.0.0 发布点 96793bd——下版本从 main 拉新分支）
 - 目标版本：2.0.0 ✅（下版本规划：B4–B6 + 修复卡，需先过 D12/D13/D14/D16 决策）
-- **目录规整规约（用户要求，2026-11-15）**：① 临时产物一律放仓库外或系统临时目录，不入仓、不留根目录；② QA/预览服务器用毕即停（TaskStop 后需核查端口回收，子进程可能存活）；③ 构建产物（dist/release/coverage/node_modules）保持 gitignored 不入库；④ `moji/docs/_work/` 只放工作流文件（STATE.md、cards/、预览存档），不堆杂物；⑤ 发现空目录与孤儿进程当轮清理。
+- **目录规整规约（用户要求，2026-11-15）**：① 临时产物一律放仓库外或系统临时目录，不入仓、不留根目录；② QA/预览服务器用毕即停（TaskStop 后需核查端口回收，子进程可能存活）；③ 构建产物（dist/release/coverage/node_modules）保持 gitignored 不入库；④ `moji/docs/_work/` 只放工作流文件（STATE.md、cards/、预览存档），不堆杂物；⑤ 发现空目录与孤儿进程当轮清理；⑥ **发版镜像**：每次发版后把 CI Release 产物全量同步到 `D:\Lab\墨集-releases\<tag>\`（仓库外，与 墨集-backups 并列，`moji-release-sync.cjs` 脚本幂等可重跑），本地保留最新版 + 全部历史版。
 
 ## 2. 任务板
 
