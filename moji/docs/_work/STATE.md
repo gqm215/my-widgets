@@ -29,7 +29,7 @@
 | B3-T2 | 编辑器工具条 + 快捷键（Notes + TaskDetail 描述编辑态） | **已完成** @ 4f4ecdf | Worker-6 | EditorToolbar、insertSyntax、Notes.tsx、TaskDetail.tsx |
 | B3-T3 | B3 批次文档收尾（README/design/testing/CHANGELOG + QA 矩阵） | **已完成** @ c2fb2a4 | Worker-6 | README.md、design.md、testing.md、CHANGELOG.md |
 | B7-T1 | Web 端手工 QA（浏览器自动化走查 20 条中可自动化项） | **已完成**（11 项自动化全过，详见 §5） | 主控 | 无代码改动 |
-| B7-P1 | 山水横幅重绘（用户反馈：意境好但清晰度差/粗糙） | **进行中** | Worker-7 | public/scenes/*、Today.tsx 横幅微调、index.css |
+| B7-P1 | 山水横幅重绘（用户反馈：意境好但清晰度差/粗糙） | **已完成** @ 55fb873 | Worker-7 | public/scenes/*、Today.tsx 暗色微调 |
 | B7-T2 | 版本号 2.0.0 + CHANGELOG 定稿 + tag/Release | **已完成**（用户已确认发布；桌面 QA 完成、版本定稿、merge main、tag） | 主控 | package.json、CHANGELOG、git tag |
 | B3-T1a | 共享 MarkdownView + 公式渲染（KaTeX 本地字体/懒加载） | **进行中** | Worker-4 | package.json、components/markdown/*、Notes.tsx、TaskDetail.tsx |
 | B3-T1b | 高亮 ==text== + 6 色白名单渲染（色板已落定，等 T1a 的 MarkdownView） | 待领（依赖 B3-T1a） | — | MarkdownView、index.css、design.md |
@@ -64,7 +64,9 @@
 
 ## 5. 交接摘要（最近 3 条）
 
-- 2026-11-15 · B7 桌面壳双端 QA（主控，启动级）：Electron dev（3 进程/窗口加载/无错误日志）+ Tauri dev（cargo 缓存 1.07s 编译/moji.exe 运行/vite 自管）均过；数据目录隔离核实（Tauri=com.moji.app，Electron=productName 墨集）。生产数据文件全程未被写入（仍 v1 @ Nov 2）。**发现缺陷（记发布后修复卡）**：F1 dev Electron 与生产共用 userData（productName 所致，dev 应 app.setName('墨集-dev')）；F2 electron:dev 缺 concurrently 声明。均不影响发布产物。
+- 2026-11-15 · B7-P1（Worker-7，已验收 @ 55fb873）：山水横幅重绘——贝塞尔山脊 4 层墨阶、blur 3 处降至 1 处 0.9、小舟重画 64×30 修复悬空残影、太阳柔光晕、暗色 brightness 0.8；SVG 总体积 9.7KB；亮/暗/窄三场景截图自验（docs/_work/qa-p1-*），主控三场景过目通过。裁定：无引用孤儿 mountains-vertical.svg 删除；侧栏内联装饰图同风格化记可选打磨（紧迫性低）。发布后修复卡 F1–F3 与可选打磨项见 §4。
+- 2026-11-15 · B7 桌面壳双端 QA（主控，启动级）：Electron + Tauri 均过；生产数据零触碰。发现缺陷 F1（dev Electron 共用生产 userData）/F2（electron:dev 缺 concurrently），记发布后修复卡。
+- 2026-11-15 · B7-T1（主控，浏览器自动化 QA）：生产构建 11 项全过。
 - 2026-11-15 · B7-T1（主控，浏览器自动化 QA）：生产构建 11 项全过（三栏/选色/内联添加/详情/交叉渲染/XSS 剥离/一致性/外部请求 0/快捷键/URL 同步/窄屏双抽屉/暗色）。
 - 2026-11-15 · B3-T3（Worker-6，已验收 @ c2fb2a4）：四处文档同步 + CHANGELOG 草稿；QA 矩阵 20 条。B0–B3 全部完成。
 
